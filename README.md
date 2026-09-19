@@ -73,7 +73,7 @@ npm run fetch:prices        # public/data/prices.json 이 실데이터로 덮어
 1. GitHub 저장소 › Settings › **Secrets and variables › Actions** 에 `KAMIS_CERT_KEY`, `KAMIS_CERT_ID` 추가.
 2. Actions 탭 › `fetch-prices` › **Run workflow** 로 한 번 수동 실행. 성공하면 `gh-pages` 브랜치가 생깁니다.
 3. Settings › **Pages** › Source를 `Deploy from a branch` / `gh-pages` / `/ (root)` 로 설정.
-4. 1~2분 뒤 `https://<아이디>.github.io/<저장소>/prices.json` 이 열리면 성공.
+4. 1~2분 뒤 `https://know77701.github.io/toss_app/prices.json` 이 열리면 성공.
 5. `.env` 의 `VITE_DATA_URL` 에 그 주소를 넣습니다.
 
 이후엔 매일 08:00·16:00(KST)에 자동 갱신됩니다. 앱은 다시 배포할 필요가 없습니다.

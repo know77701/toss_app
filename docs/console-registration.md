@@ -65,7 +65,7 @@
 ## 7. 개인정보 처리방침 / 이용약관
 
 - 콘솔에 URL 입력란이 있으면 `docs/privacy-policy.md` 를 GitHub Pages에 올린 주소를 넣으세요.
-  (예: `https://[아이디].github.io/[저장소]/privacy.html` — 워크플로가 `out/` 에 함께 올리도록 하려면 README의 "개인정보 처리방침 게시" 항목 참고)
+  (예: `https://github.com/know77701/toss_app/blob/main/docs/privacy-policy.md` — 워크플로가 `out/` 에 함께 올리도록 하려면 README의 "개인정보 처리방침 게시" 항목 참고)
 - 이 앱은 개인정보를 수집하지 않으므로 내용은 짧습니다.
 
 ## 8. 광고 그룹 (콘솔 › 인앱 광고)
