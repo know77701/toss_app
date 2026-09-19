@@ -1,11 +1,11 @@
 name: fetch-prices
 
-# 공공데이터포털 가격을 하루 2번 받아 GitHub Pages(gh-pages 브랜치)에 prices.json / history.json 으로 올립니다.
-# 앱은 https://<아이디>.github.io/<저장소>/prices.json 과 history.json 을 읽습니다.
+# 공공데이터포털 가격을 하루 2번 받아 GitHub Pages(gh-pages 브랜치)에 JSON 으로 올립니다.
+# 앱은 https://know77701.github.io/toss_app/prices.json 등을 읽습니다.
 on:
   schedule:
-    - cron: '0 7 * * *'   # 16:00 KST (KAMIS 당일 조사가 반영된 뒤)
-    - cron: '0 23 * * *'  # 08:00 KST (아침 보정)
+    - cron: '0 7 * * *'   # 16:00 KST — 농산물 + 참가격 + 회수정보
+    - cron: '0 23 * * *'  # 08:00 KST — 농산물 + 회수정보만 (참가격은 일일 한도 때문에 하루 1회)
   workflow_dispatch:
 
 permissions:
@@ -21,13 +21,25 @@ jobs:
         with:
           node-version: 20
 
-      - name: Fetch KAMIS prices
+      # 이전에 올린 파일을 가져와 둡니다. 참가격 수집이 실패해도(한도 초과 등) 지난 mart*.json 이 그대로 남습니다.
+      - name: Restore previous published files
+        run: |
+          mkdir -p out
+          if git fetch origin gh-pages --depth=1 2>/dev/null; then
+            git archive origin/gh-pages | tar -x -C out
+            ls out
+          else
+            echo "gh-pages 브랜치 없음 (첫 실행)"
+          fi
+
+      - name: Fetch farm prices + recalls
         env:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
           FOODSAFETY_KEY: ${{ secrets.FOODSAFETY_KEY }}
         run: node scripts/fetch-prices.mjs out
 
-      - name: Fetch 참가격 (mart prices)
+      - name: Fetch 참가격 (mart prices, once a day)
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 7 * * *'
         env:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
         run: node scripts/fetch-mart.mjs out
