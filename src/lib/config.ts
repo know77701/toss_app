@@ -90,6 +90,8 @@ export const REGIONS: Region[] = [
   { code: '2401', name: '광주' },
   { code: '2501', name: '대전' },
   { code: '2601', name: '울산' },
+  { code: '3111', name: '경기(수원)' }, // 농산물은 수원 조사, 마트는 경기 전체 매장
+  { code: '3112', name: '성남' },
 ];
 export const DEFAULT_REGION = REGIONS[0];
 export const REGION_UNLOCK_HOURS = 24;
@@ -156,4 +158,6 @@ export const MART_CLOSURE: Record<string, ClosureRule> = {
   '2401': { weekday: 0, weeks: [2, 4] },
   '2501': { weekday: 0, weeks: [2, 4] },
   '2601': { weekday: 0, weeks: [2, 4] },
+  '3111': { weekday: 0, weeks: [2, 4], note: '경기 일부 시는 평일 휴무' },
+  '3112': { weekday: 0, weeks: [2, 4] },
 };

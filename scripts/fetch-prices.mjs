@@ -41,6 +41,8 @@ const REGIONS = [
   { code: '2401', name: '광주' },
   { code: '2501', name: '대전' },
   { code: '2601', name: '울산' },
+  { code: '3111', name: '경기(수원)' },
+  { code: '3112', name: '성남' },
 ];
 const HISTORY_DAYS = 40;
 const SOURCE = '한국농수산식품유통공사 농산물유통정보 (공공데이터포털, 공공누리 제1유형)';
