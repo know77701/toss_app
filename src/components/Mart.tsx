@@ -18,12 +18,20 @@ type Props = {
 
 const norm = (s: string) => s.replace(/\s+/g, '').toLowerCase();
 
-/** 인기 키워드 순으로 앞에, 나머지는 이름순 */
+/**
+ * 인기 규칙 순으로 앞에, 나머지는 이름순.
+ * not 에 '*' 가 있으면 "키워드 뒤에 괄호 용량만 붙은 기본 상품"만 인정합니다. 예) 삼다수(2L) O, 삼다수(2L*6개) X
+ */
 function orderProducts(products: MartProduct[]): Array<MartProduct & { popular: boolean }> {
   const used = new Set<string>();
   const top: Array<MartProduct & { popular: boolean }> = [];
-  for (const kw of MART_POPULAR) {
-    const hits = products.filter((p) => !used.has(p.id) && p.name.includes(kw));
+  for (const rule of MART_POPULAR) {
+    const max = rule.max ?? 2;
+    const hits = products
+      .filter((p) => !used.has(p.id) && p.name.includes(rule.kw))
+      .filter((p) => !(rule.not ?? []).some((n) => (n === '*' ? /[*×x]\s*\d+/i.test(p.name) : p.name.includes(n))))
+      .sort((a, b) => a.prices.length - b.prices.length === 0 ? a.name.length - b.name.length : b.prices.length - a.prices.length) // 취급 매장 많은 것, 이름 짧은 것 우선
+      .slice(0, max);
     for (const h of hits) {
       used.add(h.id);
       top.push({ ...h, popular: true });
