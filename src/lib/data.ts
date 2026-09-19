@@ -500,3 +500,33 @@ export function martBasketTotals(mart: MartData, entries: BasketEntry[]): { tota
   const avgTotal = picked.reduce((s, { e, p }) => s + p.avg * e.qty, 0);
   return { totals, avgTotal, items: picked.length };
 }
+
+// ───────────────────────── 상품명 나누기 (제조사 / 제목 / 규격)
+
+import { MAKERS } from './config';
+
+export type SplitName = { title: string; maker: string | null; spec: string | null };
+
+/**
+ * "CJ 1등급 깨끗한 계란(10개)" → { maker: 'CJ', title: '1등급 깨끗한 계란', spec: '10개' }
+ * 제조사는 MAKERS 목록에 있을 때만 떼어냅니다. 괄호 안 규격은 항상 아래 줄로 뺍니다.
+ */
+export function splitProductName(name: string): SplitName {
+  let s = name.trim();
+  let spec: string | null = null;
+  const m = s.match(/^(.*?)\s*\(([^()]*)\)\s*$/);
+  if (m) {
+    s = m[1].trim();
+    spec = m[2].trim() || null;
+  }
+  let maker: string | null = null;
+  for (const mk of MAKERS) {
+    if (s === mk) break;
+    if (s.startsWith(mk + ' ') || (s.startsWith(mk) && mk.length >= 3 && /^[가-힣A-Za-z]/.test(s.slice(mk.length)))) {
+      maker = mk;
+      s = s.slice(mk.length).trim();
+      break;
+    }
+  }
+  return { title: s || name, maker, spec };
+}

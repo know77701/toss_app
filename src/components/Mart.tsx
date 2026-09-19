@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import MarketSection from './Market';
-import { MART_POPULAR } from '../lib/config';
-import { closureDates, distanceKm, fmtKm, shortDate, weekdayKo, won, type GeoData, type MarketData, type MartData, type MartProduct } from '../lib/data';
+import { MART_AREA, MART_POPULAR } from '../lib/config';
+import { closureDates, distanceKm, fmtKm, shortDate, splitProductName, weekdayKo, won, type GeoData, type MarketData, type MartData, type MartProduct } from '../lib/data';
 
 type Props = {
   data: MartData | null;
@@ -99,7 +99,7 @@ export default function MartScreen({ data, loading, regionName, regionCode, mark
       {subTabs}
       <div className="mart-meta recall-head">
         <span>
-          {regionName} {data.stores.length}개 매장 · 한국소비자원 {data.inspectDay} 조사 · 격주 갱신
+          {MART_AREA[regionCode] ?? regionName} {data.stores.length}개 매장 · 한국소비자원 {data.inspectDay} 조사 · 격주 갱신
         </span>
         {!userPos && (
           <button className="text-btn" onClick={onLocate}>
@@ -171,18 +171,17 @@ function ProductRow({
 }) {
   const spread = p.max - p.min;
   const spreadPct = p.min > 0 ? (spread / p.min) * 100 : 0;
+  const { title, maker, spec } = splitProductName(p.name);
+  const sub = [spec ?? p.unit, maker, `${p.prices.length}개 매장`].filter(Boolean).join(' · ');
   return (
     <div className={`row-wrap ${open ? 'open' : ''}`}>
       <div className="row" role="button" tabIndex={0} onClick={onToggle} onKeyDown={(e) => e.key === 'Enter' && onToggle()}>
         <div className="name">
           <div className="t">
             {inBasket && <span className="tag tag-basket">담김</span>}
-            {p.name}
+            {title}
           </div>
-          <div className="s">
-            {p.unit ? `${p.unit} · ` : ''}
-            {p.prices.length}개 매장
-          </div>
+          <div className="s">{sub}</div>
         </div>
         <div className="price">
           <div className="p">{won(p.min)}~</div>

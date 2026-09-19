@@ -35,7 +35,7 @@ const RECALL_API = 'http://openapi.foodsafetykorea.go.kr/api';
 // 소매 시군구코드. 앱의 src/lib/config.ts REGIONS 와 같아야 합니다. 첫 번째(서울)가 기본.
 const REGIONS = [
   { code: '1101', name: '서울' },
-  { code: '3111', name: '경기(수원)' },
+  { code: '3111', name: '수원' },
   { code: '3112', name: '성남' },
   { code: '2300', name: '인천' },
   { code: '2100', name: '부산' },
@@ -44,15 +44,15 @@ const REGIONS = [
   { code: '2501', name: '대전' },
   { code: '2601', name: '울산' },
   { code: '2701', name: '세종' },
-  { code: '3211', name: '강원(춘천)' },
+  { code: '3211', name: '춘천' },
   { code: '3214', name: '강릉' },
-  { code: '3311', name: '충북(청주)' },
-  { code: '3411', name: '충남(천안)' },
-  { code: '3511', name: '전북(전주)' },
-  { code: '3613', name: '전남(순천)' },
-  { code: '3711', name: '경북(포항)' },
+  { code: '3311', name: '청주' },
+  { code: '3411', name: '천안' },
+  { code: '3511', name: '전주' },
+  { code: '3613', name: '순천' },
+  { code: '3711', name: '포항' },
   { code: '3714', name: '안동' },
-  { code: '3814', name: '경남(창원)' },
+  { code: '3814', name: '창원' },
   { code: '3911', name: '제주' },
 ];
 const HISTORY_DAYS = 40;

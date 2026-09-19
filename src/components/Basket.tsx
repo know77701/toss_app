@@ -3,6 +3,7 @@ import {
   fmtKm,
   martBasketTotals,
   pct,
+  splitProductName,
   won,
   type BasketEntry,
   type DisplayItem,
@@ -162,17 +163,20 @@ export default function BasketScreen({ entries, freshItems, mart, geo, userPos, 
             onRemove={() => onRemove(e)}
           />
         ))}
-        {martPicked.map(({ e, p }) => (
-          <BasketLine
-            key={`m-${e.id}`}
-            name={p.name}
-            sub={`${p.unit ? `${p.unit} · ` : ''}평균 ${won(p.avg)} · 최저 ${won(p.min)}`}
-            qty={e.qty}
-            total={p.avg * e.qty}
-            onQty={(d) => onQty(e, d)}
-            onRemove={() => onRemove(e)}
-          />
-        ))}
+        {martPicked.map(({ e, p }) => {
+          const { title, maker, spec } = splitProductName(p.name);
+          return (
+            <BasketLine
+              key={`m-${e.id}`}
+              name={title}
+              sub={[spec ?? p.unit, maker, `평균 ${won(p.avg)}`, `최저 ${won(p.min)}`].filter(Boolean).join(' · ')}
+              qty={e.qty}
+              total={p.avg * e.qty}
+              onQty={(d) => onQty(e, d)}
+              onRemove={() => onRemove(e)}
+            />
+          );
+        })}
       </div>
 
       <div className="note">
