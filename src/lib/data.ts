@@ -530,3 +530,58 @@ export function splitProductName(name: string): SplitName {
   }
   return { title: s || name, maker, spec };
 }
+
+// ───────────────────────── 프리셋 · 지금 싸요
+
+import { BASKET_PRESETS, CHEAP_NOW_MONTH_DROP, CHEAP_NOW_YEAR_DROP, type BasketPreset } from './config';
+
+/** 프리셋을 현재 지역 데이터에 맞춰 장바구니 항목으로 바꿉니다. 없는 재료는 건너뜁니다. */
+export function applyPreset(preset: BasketPreset, list: DisplayItem[], mart: MartData | null): { entries: BasketEntry[]; missing: string[] } {
+  const entries: BasketEntry[] = [];
+  const missing: string[] = [];
+  for (const f of preset.fresh) {
+    const hit = list.find(
+      (it) => it.item === f.item && (!f.kind || it.kind.includes(f.kind)) && (!f.rank || it.rank.includes(f.rank)) && it.prices.d1 != null,
+    );
+    if (hit) entries.push({ kind: 'fresh', id: hit.id, qty: f.qty });
+    else missing.push(f.item);
+  }
+  for (const m of preset.mart ?? []) {
+    if (!mart) break;
+    const hit = mart.products.find(
+      (p) => p.name.includes(m.kw) && !(m.not ?? []).some((n) => (n === '*' ? /[*×x]\s*\d+/i.test(p.name) : p.name.includes(n))),
+    );
+    if (hit) entries.push({ kind: 'mart', id: hit.id, qty: m.qty });
+  }
+  return { entries, missing };
+}
+
+export function presetById(id: string | null): BasketPreset | null {
+  return BASKET_PRESETS.find((p) => p.id === id) ?? null;
+}
+
+export type CheapNow = { item: DisplayItem; pct: number; base: '1년 전' | '1개월 전' };
+
+/** 1년 전(또는 1개월 전)보다 눈에 띄게 싼 품목. 상품 등급 위주, 하락률 큰 순 */
+export function cheapNow(list: DisplayItem[], n = 5): CheapNow[] {
+  const seen = new Set<string>();
+  const out: CheapNow[] = [];
+  for (const it of list) {
+    if (it.rank.includes('중')) continue;
+    if (/\d+호$/.test(it.kind)) continue; // 닭 육계10호·11호처럼 호수 단위는 값이 튀어 제외
+    const key = `${it.item}|${it.kind}`;
+    if (seen.has(key)) continue;
+    const d1 = it.prices.d1;
+    if (d1 == null) continue;
+    const y = it.prices.d6;
+    const m = it.prices.d5;
+    if (y != null && y > 0 && d1 <= y * (1 - CHEAP_NOW_YEAR_DROP)) {
+      seen.add(key);
+      out.push({ item: it, pct: (1 - d1 / y) * 100, base: '1년 전' });
+    } else if (m != null && m > 0 && d1 <= m * (1 - CHEAP_NOW_MONTH_DROP)) {
+      seen.add(key);
+      out.push({ item: it, pct: (1 - d1 / m) * 100, base: '1개월 전' });
+    }
+  }
+  return out.sort((a, b) => b.pct - a.pct).slice(0, n);
+}

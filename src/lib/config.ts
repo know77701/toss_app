@@ -191,3 +191,91 @@ export const MAKERS = [
   '페리오', '2080', 'LG생활건강', '애경', '스파크', '홈스타', '메소드', '피죤', '다우니', '퍼실', '곰표', '큐원', '목우촌', '하림', '마니커', '올품',
   '대림선', '노브랜드', '피코크', '요리하다', '심플러스', '델몬트', '미닛메이드', '썬키스트', '바프', '농협', '한살림', '초록마을', '행복한콩', '아이꼬야',
 ];
+
+/**
+ * 장바구니 프리셋. fresh 는 농축수산물(품목명 정확히, 품종·등급 부분 일치), mart 는 참가격 상품명 키워드.
+ * 데이터에 없는 재료는 자동으로 빠집니다. 수량은 조사 단위 기준(예: 돼지 앞다리 100g → qty 3 = 300g).
+ */
+export type PresetFresh = { item: string; kind?: string; rank?: string; qty: number };
+export type PresetMart = { kw: string; not?: string[]; qty: number };
+export type BasketPreset = { id: string; name: string; desc: string; fresh: PresetFresh[]; mart?: PresetMart[] };
+
+export const BASKET_PRESETS: BasketPreset[] = [
+  {
+    id: 'chuseok',
+    name: '추석 차례상',
+    desc: '사과·배·소고기·전·조기·나물 등 14가지',
+    fresh: [
+      { item: '사과', kind: '홍로', rank: '상품', qty: 1 },
+      { item: '배', kind: '신고', rank: '상품', qty: 1 },
+      { item: '소', kind: '등심', rank: '1등급', qty: 3 },
+      { item: '돼지', kind: '앞다리', qty: 3 },
+      { item: '계란', kind: '특란30구', rank: '일반', qty: 1 },
+      { item: '조기', kind: '참조기', rank: '中', qty: 3 },
+      { item: '두부', qty: 1 },
+      { item: '무', rank: '상품', qty: 1 },
+      { item: '시금치', qty: 2 },
+      { item: '콩나물', qty: 1 },
+      { item: '찹쌀', qty: 1 },
+      { item: '김', kind: '마른김', qty: 1 },
+      { item: '물오징어', kind: '신선', rank: '中', qty: 1 },
+      { item: '명태', kind: '냉동가공', qty: 1 },
+    ],
+  },
+  {
+    id: 'solo',
+    name: '1인 자취 일주일',
+    desc: '계란·삼겹살·우유·두부·채소 + 라면·햇반',
+    fresh: [
+      { item: '계란', kind: '특란10구', rank: '일반', qty: 1 },
+      { item: '돼지', kind: '삼겹살', qty: 3 },
+      { item: '닭', kind: '육계(kg)', qty: 1 },
+      { item: '우유', qty: 1 },
+      { item: '두부', qty: 1 },
+      { item: '양파', qty: 1 },
+      { item: '파', kind: '대파', qty: 1 },
+      { item: '감자', rank: '상품', qty: 3 },
+      { item: '바나나', rank: '상품', qty: 3 },
+      { item: '토마토', qty: 1 },
+      { item: '콩나물', qty: 1 },
+    ],
+    mart: [
+      { kw: '신라면', not: ['사발', '컵'], qty: 1 },
+      { kw: '햇반', not: ['죽', '컵반', '국밥', '덮밥', '볶음밥'], qty: 1 },
+      { kw: '삼다수', not: ['*'], qty: 1 },
+    ],
+  },
+  {
+    id: 'family',
+    name: '4인 가족 일주일',
+    desc: '쌀·고기·생선·채소·과일 21가지',
+    fresh: [
+      { item: '쌀', kind: '10kg', qty: 1 },
+      { item: '계란', kind: '특란30구', rank: '일반', qty: 1 },
+      { item: '돼지', kind: '삼겹살', qty: 6 },
+      { item: '돼지', kind: '앞다리', qty: 5 },
+      { item: '소', kind: '등심', rank: '1등급', qty: 3 },
+      { item: '닭', kind: '육계(kg)', qty: 2 },
+      { item: '우유', qty: 3 },
+      { item: '두부', qty: 2 },
+      { item: '양파', qty: 2 },
+      { item: '파', kind: '대파', qty: 1 },
+      { item: '감자', rank: '상품', qty: 10 },
+      { item: '사과', kind: '홍로', rank: '상품', qty: 1 },
+      { item: '배추', rank: '상품', qty: 1 },
+      { item: '무', rank: '상품', qty: 1 },
+      { item: '상추', kind: '적', qty: 2 },
+      { item: '오이', kind: '다다기', rank: '상품', qty: 1 },
+      { item: '고등어', kind: '신선', rank: '中', qty: 2 },
+      { item: '김', kind: '마른김', qty: 2 },
+      { item: '호박', kind: '애호박', qty: 2 },
+      { item: '깐마늘(국산)', rank: '상품', qty: 1 },
+      { item: '김치', qty: 1 },
+    ],
+  },
+];
+
+/** "지금 싸요" 기준: 1년 전 대비 이 비율 이상 싸면 표시 (0.2 = 20%) */
+export const CHEAP_NOW_YEAR_DROP = 0.2;
+/** 1개월 전 대비 기준 */
+export const CHEAP_NOW_MONTH_DROP = 0.15;

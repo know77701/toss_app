@@ -8,8 +8,10 @@ import RecallsScreen, { RecallStrip } from './components/Recalls';
 import RegionSheet from './components/RegionSheet';
 import Settings from './components/Settings';
 import { useInterstitial, useRewarded, useTossAdsInit } from './lib/ads';
-import { CATEGORY_NAME, DEFAULT_REGION, REGIONS, REGION_UNLOCK_HOURS, REWARD_SLOTS, type Region } from './lib/config';
+import { CATEGORY_NAME, DEFAULT_REGION, REGIONS, REGION_UNLOCK_HOURS, REWARD_SLOTS, type BasketPreset, type Region } from './lib/config';
 import {
+  applyPreset,
+  cheapNow,
   fetchGeo,
   fetchHistory,
   fetchMarket,
@@ -20,6 +22,7 @@ import {
   movers,
   orderItems,
   pct,
+  presetById,
   searchItems,
   won,
   type BasketEntry,
@@ -87,6 +90,7 @@ export default function App() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [favorites, setFavs] = useState<string[]>(() => getFavorites());
   const [basket, setBasketState] = useState<BasketEntry[]>(() => getBasket());
+  const [activePreset, setActivePreset] = useState<string | null>(null);
   const [slots, setSlots] = useState<number>(() => getSlots());
   const [toast, setToast] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -152,6 +156,7 @@ export default function App() {
   const regday = data?.regday ?? '';
   const top = useMemo(() => movers(list, 5), [list]);
   const results = useMemo(() => searchItems(list, query), [list, query]);
+  const cheap = useMemo(() => cheapNow(list, 5), [list]);
   const searching = query.trim().length > 0;
 
   // 딥링크: ?item=<id> / ?item=<id>&view=detail / ?tab=mart|basket
@@ -160,13 +165,23 @@ export default function App() {
     const q = new URLSearchParams(location.search);
     const t = q.get('tab');
     if (t === 'mart' || t === 'basket') setTab(t);
+    const pr = presetById(q.get('preset'));
+    if (pr) {
+      const { entries } = applyPreset(pr, list, mart);
+      if (entries.length) {
+        setBasketState(entries);
+        saveBasket(entries);
+        setActivePreset(pr.id);
+        setTab('basket');
+      }
+    }
     const id = q.get('item');
     if (!id) return;
     const target = list.find((x) => x.id === id);
     if (!target) return;
     if (q.get('view') === 'detail') setScreen({ name: 'detail', item: target });
     else setExpandedId(target.id);
-  }, [list]);
+  }, [list, mart]);
 
   const favoriteItems = list.filter((x) => favSet.has(x.id));
   const popularItems = list.filter((x) => x.popularRank != null && !favSet.has(x.id));
@@ -236,6 +251,7 @@ export default function App() {
   }, []);
   const addToBasket = useCallback(
     (kind: 'fresh' | 'mart', id: string, name: string) => {
+      setActivePreset(null);
       updateBasket((prev) => {
         const i = prev.findIndex((b) => b.kind === kind && b.id === id);
         if (i >= 0) return prev.map((b, j) => (j === i ? { ...b, qty: b.qty + 1 } : b));
@@ -251,6 +267,19 @@ export default function App() {
     (entry: BasketEntry, delta: number) =>
       updateBasket((prev) => prev.map((b) => (b.kind === entry.kind && b.id === entry.id ? { ...b, qty: Math.max(1, b.qty + delta) } : b))),
     [updateBasket],
+  );
+  const usePreset = useCallback(
+    (preset: BasketPreset) => {
+      const { entries, missing } = applyPreset(preset, list, mart);
+      if (entries.length === 0) {
+        setToast('이 지역 데이터에 프리셋 재료가 없습니다');
+        return;
+      }
+      updateBasket(() => entries);
+      setActivePreset(preset.id);
+      setToast(missing.length ? `${preset.name} 담았습니다 (${missing.join(', ')} 제외)` : `${preset.name} 담았습니다`);
+    },
+    [list, mart, updateBasket],
   );
   const removeEntry = useCallback((entry: BasketEntry) => updateBasket((prev) => prev.filter((b) => !(b.kind === entry.kind && b.id === entry.id))), [updateBasket]);
 
@@ -374,6 +403,8 @@ export default function App() {
               onGoFresh={() => setTab('fresh')}
               onGoMart={() => setTab('mart')}
               onLocate={locate}
+              onPreset={usePreset}
+              activePreset={activePreset}
             />
           )}
 
@@ -417,7 +448,7 @@ export default function App() {
               {basketSummary.count > 0 && (
                 <button className="basket-card" onClick={() => setTab('basket')}>
                   <div className="basket-card-l">
-                    <div className="k">내 장바구니 {basketSummary.count}개</div>
+                    <div className="k">{activePreset ? presetById(activePreset)?.name : '내 장바구니'} {basketSummary.count}개</div>
                     <div className="v">
                       {basketSummary.freshCount > 0 && <span>{won(basketSummary.today)}</span>}
                       {basketSummary.freshCount > 0 && basketSummary.month > 0 && (
@@ -443,6 +474,24 @@ export default function App() {
                   <MoverColumn title="많이 내린 품목" items={top.down} cls="down" onPick={jumpTo} empty="오늘 내린 품목이 없습니다" />
                 </div>
               </div>
+
+              {cheap.length > 0 && (
+                <div className="section">
+                  <div className="section-head">지금 싸요</div>
+                  <div className="cheap">
+                    {cheap.map(({ item, pct: p, base }) => (
+                      <button key={item.id} className="cheap-row" onClick={() => jumpTo(item)}>
+                        <span className="n">{item.label}</span>
+                        <span className="d down">{base}보다 {Math.round(p)}% 싸요</span>
+                        <span className="v">
+                          {won(item.prices.d1)}
+                          <small>/{item.unit}</small>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <RecallStrip data={recalls} onMore={() => setScreen({ name: 'recalls' })} />
 

@@ -1044,3 +1044,88 @@ body {
     padding-right: 0;
   }
 }
+
+/* 프리셋 칩 */
+.presets {
+  display: flex;
+  gap: 8px;
+  padding: 4px 20px 10px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.presets::-webkit-scrollbar {
+  display: none;
+}
+.chip {
+  flex-shrink: 0;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: var(--bg);
+  font-size: 13px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.chip.on {
+  border-color: var(--blue);
+  color: var(--blue);
+  font-weight: 600;
+  background: #e8f3ff;
+}
+
+/* 지금 싸요 */
+.cheap {
+  margin: 0 20px;
+  background: var(--bg-sub);
+  border-radius: 12px;
+  padding: 4px 14px;
+}
+.cheap-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line-2);
+  background: none;
+  text-align: left;
+  font-size: 13px;
+}
+.cheap-row:last-child {
+  border-bottom: 0;
+}
+.cheap-row .n {
+  font-weight: 600;
+  min-width: 56px;
+}
+.cheap-row .d {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+.cheap-row .v {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.cheap-row .v small {
+  color: var(--text-3);
+  font-size: 11px;
+  margin-left: 1px;
+}
+@media (max-width: 360px) {
+  .presets,
+  .cheap {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+  .presets {
+    margin: 0;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}

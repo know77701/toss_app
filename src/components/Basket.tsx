@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { BASKET_PRESETS, type BasketPreset } from '../lib/config';
 import {
   fmtKm,
   martBasketTotals,
@@ -23,10 +24,12 @@ type Props = {
   onGoFresh: () => void;
   onGoMart: () => void;
   onLocate: () => void;
+  onPreset: (preset: BasketPreset) => void;
+  activePreset: string | null;
 };
 
 /** 장바구니: 농산물은 오늘 vs 1개월 전, 마트 상품은 매장별 합계로 "어디가 싼가" */
-export default function BasketScreen({ entries, freshItems, mart, geo, userPos, regionName, onQty, onRemove, onGoFresh, onGoMart, onLocate }: Props) {
+export default function BasketScreen({ entries, freshItems, mart, geo, userPos, regionName, onQty, onRemove, onGoFresh, onGoMart, onLocate, onPreset, activePreset }: Props) {
   const fresh = useMemo(
     () =>
       entries
@@ -49,11 +52,28 @@ export default function BasketScreen({ entries, freshItems, mart, geo, userPos, 
   const freshMonth = fresh.reduce((s, { e, it }) => s + (it.prices.d5 ?? it.prices.d1 ?? 0) * e.qty, 0);
   const freshWeek = fresh.reduce((s, { e, it }) => s + (it.prices.d3 ?? it.prices.d1 ?? 0) * e.qty, 0);
   const hasFreshMonth = fresh.some(({ it }) => it.prices.d5 != null);
+  // 작년 대비: 1년 전 값이 있는 품목만 같은 기준으로 비교
+  const withYear = fresh.filter(({ it }) => it.prices.d6 != null);
+  const yearToday = withYear.reduce((s, { e, it }) => s + (it.prices.d1 ?? 0) * e.qty, 0);
+  const yearAgo = withYear.reduce((s, { e, it }) => s + (it.prices.d6 ?? 0) * e.qty, 0);
+  const yearPct = yearAgo > 0 ? ((yearToday - yearAgo) / yearAgo) * 100 : null;
+
+  const presetChips = (
+    <div className="presets">
+      {BASKET_PRESETS.map((p) => (
+        <button key={p.id} className={`chip ${activePreset === p.id ? 'on' : ''}`} onClick={() => onPreset(p)} title={p.desc}>
+          {p.name}
+        </button>
+      ))}
+    </div>
+  );
 
   if (entries.length === 0) {
     return (
       <div>
-        <div className="state" style={{ paddingTop: 48 }}>
+        <div className="section-head" style={{ paddingTop: 4 }}>한 번에 담기</div>
+        {presetChips}
+        <div className="state" style={{ paddingTop: 28 }}>
           장바구니가 비어 있습니다.
           <div className="expand-note" style={{ marginTop: 10, lineHeight: 1.6 }}>
             품목을 눌러 펼친 뒤 <b>담기</b>를 누르면 여기에 모입니다.
@@ -78,6 +98,7 @@ export default function BasketScreen({ entries, freshItems, mart, geo, userPos, 
 
   return (
     <div>
+      {presetChips}
       {/* 요약 */}
       <div className="basket-summary">
         <div className="basket-row">
@@ -92,6 +113,16 @@ export default function BasketScreen({ entries, freshItems, mart, geo, userPos, 
               {won(Math.round(diff))} ({pct(diffPct)})
             </b>
             {' · '}1주 전 {won(freshWeek)}
+          </div>
+        )}
+        {yearPct != null && withYear.length >= 3 && (
+          <div className="basket-sub">
+            작년 이맘때보다{' '}
+            <b className={yearPct > 0 ? 'up' : yearPct < 0 ? 'down' : 'flat'}>
+              {yearPct > 0 ? '+' : ''}
+              {won(Math.round(yearToday - yearAgo))} ({pct(yearPct)})
+            </b>
+            {withYear.length < fresh.length ? ` · ${withYear.length}/${fresh.length}개 품목 기준` : ''}
           </div>
         )}
         {martTotals && martTotals.items > 0 && (
