@@ -8,6 +8,8 @@
 - `prices.json` 서울 오늘 가격 + 어제·1주·2주·1개월·1년 전. 다른 지역은 `prices.<지역코드>.json` (부산 2100, 대구 2200, 인천 2300, 광주 2401, 대전 2501, 울산 2601). 평년 값은 이 API에 없어 비교표에서 빠집니다.
 - `history.json` / `history.<지역코드>.json` 최근 40일 일별 가격. 날짜 범위로 한 번에 받으므로 첫날부터 그래프가 채워집니다.
 - `mart.json` / `mart.<지역코드>.json` 한국소비자원 참가격 생필품(≈330개) 매장별 가격. 격주 금요일 조사
+- `market.json` 서울시 전통시장 31곳 85품목 (서울 열린데이터광장, 주 1회)
+- `stores-geo.json` 참가격 매장 좌표 (카카오 로컬 API로 1회 지오코딩, 새 매장만 추가 호출. 앱은 좌표만 읽고 카카오를 직접 부르지 않음)
 - `recalls.json` 식약처 회수·판매중지 최근 30건
 - `push.json` 오늘 보낼 푸시 문구 1개 (제목·본문·딥링크)
 
@@ -79,7 +81,7 @@ npm run fetch:prices        # public/data/prices.json 이 실데이터로 덮어
 
 ### 2일차 — 데이터 자동화 (GitHub Actions + Pages)
 
-1. GitHub 저장소 › Settings › **Secrets and variables › Actions** 에 `DATA_GO_KR_KEY`, `FOODSAFETY_KEY` 추가.
+1. GitHub 저장소 › Settings › **Secrets and variables › Actions** 에 `DATA_GO_KR_KEY`, `FOODSAFETY_KEY`, `SEOUL_OPENDATA_KEY`, `KAKAO_REST_KEY` 추가.
 2. Actions 탭 › `fetch-prices` › **Run workflow** 로 한 번 수동 실행. 성공하면 `gh-pages` 브랜치가 생깁니다.
 3. Settings › **Pages** › Source를 `Deploy from a branch` / `gh-pages` / `/ (root)` 로 설정.
 4. 1~2분 뒤 `https://know77701.github.io/toss_app/prices.json` 이 열리면 성공.

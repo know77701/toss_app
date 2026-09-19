@@ -12,7 +12,8 @@ export default defineConfig({
   brand: {
     primaryColor: '#1B64DA',
   },
-  permissions: [],
+  // 내 위치 기준 매장 거리 표시에만 씁니다. 사용자가 버튼을 눌렀을 때만 요청하고 저장하지 않습니다.
+  permissions: [{ name: 'geolocation', access: 'access' }],
   navigationBar: {
     withBackButton: true,
     withHomeButton: true,

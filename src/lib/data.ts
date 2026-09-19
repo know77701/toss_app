@@ -412,3 +412,91 @@ export function closureDates(regionCode: string, from = new Date()): { dates: st
 export function weekdayKo(date: string): string {
   return ['일', '월', '화', '수', '목', '금', '토'][new Date(`${date}T00:00:00`).getDay()];
 }
+
+// ───────────────────────── 매장 좌표 · 거리
+
+export type GeoData = { updatedAt: string; geo: Record<string, [number, number] | null> };
+
+export async function fetchGeo(): Promise<GeoData | null> {
+  try {
+    const base = DATA_URL.replace(/prices\.json(\?.*)?$/, '');
+    if (base === DATA_URL) return null;
+    const json = await withFallback<GeoData>(`${base}stores-geo.json`, 'stores-geo.json');
+    return json && json.geo ? json : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 두 좌표 사이 거리(km) */
+export function distanceKm(a: [number, number], b: [number, number]): number {
+  const R = 6371;
+  const dLat = ((b[0] - a[0]) * Math.PI) / 180;
+  const dLng = ((b[1] - a[1]) * Math.PI) / 180;
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos((a[0] * Math.PI) / 180) * Math.cos((b[0] * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+export function fmtKm(km: number): string {
+  return km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`;
+}
+
+// ───────────────────────── 전통시장 (서울시)
+
+export type MarketItem = {
+  code: string;
+  name: string;
+  unit: string;
+  count: number;
+  min: number;
+  max: number;
+  avg: number;
+  guAvg: Record<string, number>;
+  cheapest: Array<{ market: string; gu: string; price: number; spec: string; date: string }>;
+};
+export type MarketData = { updatedAt: string; inspectDay: string; region: string; source: string; markets: number; items: MarketItem[] };
+
+export async function fetchMarket(): Promise<MarketData | null> {
+  try {
+    const base = DATA_URL.replace(/prices\.json(\?.*)?$/, '');
+    if (base === DATA_URL) return null;
+    const json = await withFallback<MarketData>(`${base}market.json`, 'market.json');
+    return json && Array.isArray(json.items) ? json : null;
+  } catch {
+    return null;
+  }
+}
+
+// ───────────────────────── 장바구니
+
+export type BasketEntry = { kind: 'fresh' | 'mart'; id: string; qty: number };
+
+export type StoreTotal = { storeIdx: number; total: number; covered: number; missing: string[] };
+
+/** 마트 장바구니: 매장별 합계. 담은 상품 중 그 매장에 가격이 있는 것만 더하고, 빠진 상품은 이름으로 알려줍니다. */
+export function martBasketTotals(mart: MartData, entries: BasketEntry[]): { totals: StoreTotal[]; avgTotal: number; items: number } {
+  const picked = entries
+    .filter((e) => e.kind === 'mart')
+    .map((e) => ({ e, p: mart.products.find((p) => p.id === e.id) }))
+    .filter((x): x is { e: BasketEntry; p: MartProduct } => !!x.p);
+  if (picked.length === 0) return { totals: [], avgTotal: 0, items: 0 };
+
+  const per = new Map<number, { total: number; covered: number; missing: string[] }>();
+  mart.stores.forEach((_, idx) => per.set(idx, { total: 0, covered: 0, missing: [] }));
+  for (const { e, p } of picked) {
+    const has = new Map(p.prices.map(([si, price]) => [si, price]));
+    for (const [idx, acc] of per) {
+      const price = has.get(idx);
+      if (price != null) {
+        acc.total += price * e.qty;
+        acc.covered++;
+      } else acc.missing.push(p.name);
+    }
+  }
+  const totals = [...per.entries()]
+    .map(([storeIdx, v]) => ({ storeIdx, ...v }))
+    .filter((t) => t.covered >= Math.ceil(picked.length * 0.7)) // 담은 것의 70% 이상 취급하는 매장만
+    .sort((a, b) => b.covered - a.covered || a.total - b.total);
+  const avgTotal = picked.reduce((s, { e, p }) => s + p.avg * e.qty, 0);
+  return { totals, avgTotal, items: picked.length };
+}

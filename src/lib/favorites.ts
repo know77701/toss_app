@@ -59,3 +59,16 @@ export function setUnlockHours(hours: number): number {
   write(KEY_UNLOCK, until);
   return until;
 }
+
+// ───────────────────────── 장바구니
+
+const KEY_BASKET = 'tm:basket';
+
+export type StoredBasketEntry = { kind: 'fresh' | 'mart'; id: string; qty: number };
+
+export function getBasket(): StoredBasketEntry[] {
+  return read<StoredBasketEntry[]>(KEY_BASKET, []);
+}
+export function setBasket(entries: StoredBasketEntry[]) {
+  write(KEY_BASKET, entries);
+}

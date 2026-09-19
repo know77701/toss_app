@@ -1,12 +1,19 @@
 import { useMemo, useState } from 'react';
+import MarketSection from './Market';
 import { MART_POPULAR } from '../lib/config';
-import { closureDates, shortDate, weekdayKo, won, type MartData, type MartProduct } from '../lib/data';
+import { closureDates, distanceKm, fmtKm, shortDate, weekdayKo, won, type GeoData, type MarketData, type MartData, type MartProduct } from '../lib/data';
 
 type Props = {
   data: MartData | null;
   loading: boolean;
   regionName: string;
   regionCode: string;
+  market: MarketData | null;
+  geo: GeoData | null;
+  userPos: [number, number] | null;
+  basketIds: Set<string>;
+  onAddBasket: (p: MartProduct) => void;
+  onLocate: () => void;
 };
 
 const norm = (s: string) => s.replace(/\s+/g, '').toLowerCase();
@@ -26,9 +33,10 @@ function orderProducts(products: MartProduct[]): Array<MartProduct & { popular: 
   return [...top, ...rest];
 }
 
-export default function MartScreen({ data, loading, regionName, regionCode }: Props) {
+export default function MartScreen({ data, loading, regionName, regionCode, market, geo, userPos, basketIds, onAddBasket, onLocate }: Props) {
   const closure = useMemo(() => closureDates(regionCode), [regionCode]);
   const [closureOpen, setClosureOpen] = useState(false);
+  const [sub, setSub] = useState<'mart' | 'market'>('mart');
   const [query, setQuery] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -38,34 +46,63 @@ export default function MartScreen({ data, loading, regionName, regionCode }: Pr
   const popular = shown.filter((p) => p.popular);
   const rest = shown.filter((p) => !p.popular);
 
-  if (loading && !data) return <div className="state">마트 물가를 불러오는 중</div>;
+  const subTabs = (
+    <div className="subtabs">
+      <button className={sub === 'mart' ? 'on' : ''} onClick={() => setSub('mart')}>
+        마트·편의점
+      </button>
+      <button className={sub === 'market' ? 'on' : ''} onClick={() => setSub('market')}>
+        전통시장{regionName !== '서울' ? ' (서울만)' : ''}
+      </button>
+    </div>
+  );
+
+  if (sub === 'market') {
+    return (
+      <div>
+        {subTabs}
+        <MarketSection data={market} regionName={regionName} />
+      </div>
+    );
+  }
+
+  if (loading && !data)
+    return (
+      <div>
+        {subTabs}
+        <div className="state">마트 물가를 불러오는 중</div>
+      </div>
+    );
   if (!data)
     return (
-      <div className="state">
-        {regionName} 지역 마트 가격 정보가 아직 없습니다.
-        <div className="expand-note" style={{ marginTop: 8 }}>
-          참가격 수집이 한 번 돌아야 채워집니다.
+      <div>
+        {subTabs}
+        <div className="state">
+          {regionName} 지역 마트 가격 정보가 아직 없습니다.
+          <div className="expand-note" style={{ marginTop: 8 }}>
+            참가격 수집이 한 번 돌아야 채워집니다.
+          </div>
         </div>
       </div>
     );
 
   return (
     <div>
-      <div className="mart-meta">
-        {regionName} {data.stores.length}개 매장 · 한국소비자원 {data.inspectDay} 조사 · 격주 갱신
+      {subTabs}
+      <div className="mart-meta recall-head">
+        <span>
+          {regionName} {data.stores.length}개 매장 · 한국소비자원 {data.inspectDay} 조사 · 격주 갱신
+        </span>
+        {!userPos && (
+          <button className="text-btn" onClick={onLocate}>
+            내 위치로 거리 보기
+          </button>
+        )}
       </div>
-
 
       <div className="search">
         <div className="search-box">
-          <input
-            type="search"
-            inputMode="search"
-            placeholder="상품 검색 (예: 신라면, 화장지, 우유)"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label="상품 검색"
-          />
+          <input type="search" inputMode="search" placeholder="상품 검색 (예: 신라면, 화장지, 우유)" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="상품 검색" />
           {query && (
             <button className="clear" onClick={() => setQuery('')} aria-label="지우기">
               ✕
@@ -80,7 +117,7 @@ export default function MartScreen({ data, loading, regionName, regionCode }: Pr
         <div className="section">
           <div className="section-head">많이 사는 생필품</div>
           {popular.map((p) => (
-            <ProductRow key={p.id} p={p} data={data} open={openId === p.id} onToggle={() => setOpenId(openId === p.id ? null : p.id)} />
+            <ProductRow key={p.id} p={p} data={data} geo={geo} userPos={userPos} inBasket={basketIds.has(p.id)} open={openId === p.id} onToggle={() => setOpenId(openId === p.id ? null : p.id)} onAddBasket={onAddBasket} />
           ))}
         </div>
       )}
@@ -88,7 +125,7 @@ export default function MartScreen({ data, loading, regionName, regionCode }: Pr
         <div className="section">
           <div className="section-head">전체 {q ? '' : `${rest.length}개`}</div>
           {rest.map((p) => (
-            <ProductRow key={p.id} p={p} data={data} open={openId === p.id} onToggle={() => setOpenId(openId === p.id ? null : p.id)} />
+            <ProductRow key={p.id} p={p} data={data} geo={geo} userPos={userPos} inBasket={basketIds.has(p.id)} open={openId === p.id} onToggle={() => setOpenId(openId === p.id ? null : p.id)} onAddBasket={onAddBasket} />
           ))}
         </div>
       )}
@@ -98,21 +135,42 @@ export default function MartScreen({ data, loading, regionName, regionCode }: Pr
       )}
 
       <div className="note">
-        출처 한국소비자원 참가격(공공데이터포털). {regionName} 소재 대형마트·기업형슈퍼·백화점·편의점의 정가 기준 조사이며 행사가는
-        반영되지 않을 수 있습니다.
+        출처 한국소비자원 참가격(공공데이터포털). {regionName} 소재 대형마트·기업형슈퍼·백화점·편의점의 정가 기준 조사이며 행사가는 반영되지 않을 수 있습니다.
+        매장 위치는 카카오 지도 기준입니다.
       </div>
     </div>
   );
 }
 
-function ProductRow({ p, data, open, onToggle }: { p: MartProduct; data: MartData; open: boolean; onToggle: () => void }) {
+function ProductRow({
+  p,
+  data,
+  geo,
+  userPos,
+  inBasket,
+  open,
+  onToggle,
+  onAddBasket,
+}: {
+  p: MartProduct;
+  data: MartData;
+  geo: GeoData | null;
+  userPos: [number, number] | null;
+  inBasket: boolean;
+  open: boolean;
+  onToggle: () => void;
+  onAddBasket: (p: MartProduct) => void;
+}) {
   const spread = p.max - p.min;
   const spreadPct = p.min > 0 ? (spread / p.min) * 100 : 0;
   return (
     <div className={`row-wrap ${open ? 'open' : ''}`}>
       <div className="row" role="button" tabIndex={0} onClick={onToggle} onKeyDown={(e) => e.key === 'Enter' && onToggle()}>
         <div className="name">
-          <div className="t">{p.name}</div>
+          <div className="t">
+            {inBasket && <span className="tag tag-basket">담김</span>}
+            {p.name}
+          </div>
           <div className="s">
             {p.unit ? `${p.unit} · ` : ''}
             {p.prices.length}개 매장
@@ -123,14 +181,34 @@ function ProductRow({ p, data, open, onToggle }: { p: MartProduct; data: MartDat
           <div className={`c ${spreadPct >= 20 ? 'up' : 'flat'}`}>최대 {won(p.max)} · 차이 {won(spread)}</div>
         </div>
       </div>
-      {open && <ProductDetail p={p} data={data} />}
+      {open && <ProductDetail p={p} data={data} geo={geo} userPos={userPos} inBasket={inBasket} onAddBasket={onAddBasket} />}
     </div>
   );
 }
 
-function ProductDetail({ p, data }: { p: MartProduct; data: MartData }) {
+function ProductDetail({
+  p,
+  data,
+  geo,
+  userPos,
+  inBasket,
+  onAddBasket,
+}: {
+  p: MartProduct;
+  data: MartData;
+  geo: GeoData | null;
+  userPos: [number, number] | null;
+  inBasket: boolean;
+  onAddBasket: (p: MartProduct) => void;
+}) {
   const chains = Object.entries(p.chainAvg).sort((a, b) => a[1] - b[1]);
-  const cheapest = p.prices.slice(0, 8);
+  const withKm = p.prices.map(([si, price]) => {
+    const pos = geo?.geo?.[data.stores[si]?.id];
+    return { si, price, km: userPos && pos ? distanceKm(userPos, pos) : null };
+  });
+  const cheapest = withKm.slice(0, 6);
+  const nearest = userPos ? [...withKm].filter((x) => x.km != null).sort((a, b) => a.km! - b.km!).slice(0, 4) : [];
+
   return (
     <div className="expand">
       <div className="expand-head">
@@ -145,21 +223,56 @@ function ProductDetail({ p, data }: { p: MartProduct; data: MartData }) {
           </div>
         ))}
       </div>
+
       <div className="expand-head" style={{ marginTop: 12 }}>
         <span>가장 싼 매장</span>
       </div>
       <div className="chain-list">
-        {cheapest.map(([si, price], i) => {
-          const s = data.stores[si];
+        {cheapest.map((x, i) => {
+          const s = data.stores[x.si];
           return (
-            <div key={`${si}-${i}`} className="chain-row">
+            <div key={`c-${x.si}`} className="chain-row">
               <span className="n">
                 {s?.name ?? '-'} <span className="tag">{s?.typeName}</span>
+                {x.km != null && <span className="chain-spec"> {fmtKm(x.km)}</span>}
               </span>
-              <span className={`v ${i === 0 ? 'down' : ''}`}>{won(price)}</span>
+              <span className={`v ${i === 0 ? 'down' : ''}`}>{won(x.price)}</span>
             </div>
           );
         })}
+      </div>
+
+      {nearest.length > 0 && (
+        <>
+          <div className="expand-head" style={{ marginTop: 12 }}>
+            <span>내 주변 매장</span>
+          </div>
+          <div className="chain-list">
+            {nearest.map((x) => {
+              const s = data.stores[x.si];
+              return (
+                <div key={`n-${x.si}`} className="chain-row">
+                  <span className="n">
+                    {s?.name ?? '-'} <span className="chain-spec">{fmtKm(x.km!)}</span>
+                  </span>
+                  <span className="v">{won(x.price)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      <div className="expand-actions">
+        <button
+          className={`link-btn ${inBasket ? 'on' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddBasket(p);
+          }}
+        >
+          {inBasket ? '담김 · 1개 더' : '장바구니 담기'}
+        </button>
       </div>
     </div>
   );
@@ -169,21 +282,7 @@ function ProductDetail({ p, data }: { p: MartProduct; data: MartData }) {
  * 대형마트 의무휴업: 화면 하단 고정 바(광고 배너 위) + 누르면 바텀시트.
  * 자동으로 열리지 않습니다(검수 기준: 진입 즉시 바텀시트 노출 금지).
  */
-function ClosureBar({
-  regionName,
-  dates,
-  note,
-  open,
-  onOpen,
-  onClose,
-}: {
-  regionName: string;
-  dates: string[];
-  note?: string;
-  open: boolean;
-  onOpen: () => void;
-  onClose: () => void;
-}) {
+function ClosureBar({ regionName, dates, note, open, onOpen, onClose }: { regionName: string; dates: string[]; note?: string; open: boolean; onOpen: () => void; onClose: () => void }) {
   const fmt = (d: string) => `${shortDate(d)}(${weekdayKo(d)})`;
   const next = dates[0];
   const daysLeft = Math.round((Date.parse(`${next}T00:00:00`) - new Date().setHours(0, 0, 0, 0)) / 86400000);

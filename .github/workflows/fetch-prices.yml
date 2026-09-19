@@ -45,6 +45,19 @@ jobs:
         run: node scripts/fetch-mart.mjs out
         continue-on-error: true
 
+      - name: Fetch Seoul traditional-market prices
+        env:
+          SEOUL_OPENDATA_KEY: ${{ secrets.SEOUL_OPENDATA_KEY }}
+        run: node scripts/fetch-seoul.mjs out
+        continue-on-error: true
+
+      - name: Geocode new stores (Kakao)
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+        run: node scripts/geocode-stores.mjs out
+        continue-on-error: true
+
       - name: Build today's push text
         run: node scripts/build-push.mjs out
 
