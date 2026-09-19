@@ -570,3 +570,61 @@ button {
   color: var(--blue);
   font-weight: 600;
 }
+
+/* 회수·판매중지 */
+.recall-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.recall-head .text-btn {
+  border: 0;
+  background: none;
+  font-size: 13px;
+  color: var(--text-2);
+  padding: 0;
+}
+.recall-row .name .t {
+  white-space: normal;
+}
+.recall-reason {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--red);
+}
+.recall-date {
+  font-size: 12px;
+  color: var(--text-3);
+}
+.recall-grade {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-3);
+}
+.recall-card {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.recall-card .t {
+  font-size: 15px;
+  font-weight: 600;
+  flex: 1;
+}
+.recall-card .s {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.recall-card-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.recall-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-3);
+}

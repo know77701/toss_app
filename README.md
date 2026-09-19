@@ -2,14 +2,17 @@
 
 계란·삼겹살·쌀·양파처럼 사람들이 많이 사는 품목의 **오늘 서울 소매가격**과 어제 대비 등락을 보여주는 앱입니다.
 품목을 누르면 그 자리에서 최근 1주 그래프가 펼쳐지고, "1개월 추이와 비교표 보기"를 누르면 상세 화면으로 갑니다.
-데이터는 aT KAMIS Open-API(공공누리 1유형)에서 하루 2번 자동 수집하고, 앱은 로그인 없이 동작하며, 수익은 앱인토스 인앱 광고(배너·전면·보상형)입니다.
+데이터는 공공데이터포털(한국농수산식품유통공사 지역별 소매가격 API)에서 하루 2번 자동 수집하고, 식약처 회수·판매중지 정보도 같이 받아, 앱은 로그인 없이 동작하며, 수익은 앱인토스 인앱 광고(배너·전면·보상형)입니다.
 
-**데이터 파일 (지역별)**
-- `prices.json` 서울 오늘 가격 + 어제·1주·2주·1개월·1년 전·평년. 다른 지역은 `prices.<지역코드>.json` (부산 2100, 대구 2200, 인천 2300, 광주 2401, 대전 2501, 울산 2601)
-- `history.json` / `history.<지역코드>.json` 날짜별 가격 이력(최근 40일). 매일 실행하며 쌓이고, 서울만 기간별 API로 하루 최대 80회씩 보충합니다. **첫 며칠은 그래프 점이 듬성듬성**하고 1주일쯤 지나면 채워집니다.
-- `push.json` 오늘 보낼 푸시 문구 1개 (제목·본문·딥링크). 발송은 하지 않고 만들어만 둡니다.
+**데이터 파일**
+- `prices.json` 서울 오늘 가격 + 어제·1주·2주·1개월·1년 전. 다른 지역은 `prices.<지역코드>.json` (부산 2100, 대구 2200, 인천 2300, 광주 2401, 대전 2501, 울산 2601). 평년 값은 이 API에 없어 비교표에서 빠집니다.
+- `history.json` / `history.<지역코드>.json` 최근 40일 일별 가격. 날짜 범위로 한 번에 받으므로 첫날부터 그래프가 채워집니다.
+- `recalls.json` 식약처 회수·판매중지 최근 30건
+- `push.json` 오늘 보낼 푸시 문구 1개 (제목·본문·딥링크)
 
-**비용**: KAMIS Open-API 무료(공공누리 1유형), GitHub Actions·Pages 공개 저장소 무료, 앱인토스 콘솔·광고 SDK 무료. **돈 드는 건 없습니다.** 하루 호출은 지역 7 × 부류 6 = 42회 + 서울 이력 보충 최대 80회, 2번 실행.
+**비용**: 공공데이터포털·식품안전나라 API 무료, GitHub Actions·Pages 공개 저장소 무료, 앱인토스 콘솔·광고 SDK 무료. **돈 드는 건 없습니다.** 하루 호출은 약 65회, 개발계정 한도 10,000회.
+
+**조회 시 API 호출 없음**: 사용자가 앱을 열 때는 GitHub Pages 의 JSON 만 읽고, 그마저도 기기에 6시간 캐시합니다. 외부 API는 GitHub Actions 배치만 호출합니다. 앱인토스는 서버 DB를 제공하지 않아서(공식 문서: 로컬 Storage 또는 Supabase·Firebase 권장) 정적 JSON 을 저장소로 씁니다.
 
 **지역 전환과 보상형 광고**: 서울은 항상 무료, 다른 지역은 보상형 광고를 끝까지 보면 24시간 동안 전체 지역이 열립니다. 상단 "서울 ▾" 버튼에서 고릅니다.
 
@@ -29,7 +32,7 @@ today-market/
 │  ├─ lib/data.ts             데이터 로드, 정렬, 등락 계산
 │  ├─ lib/ads.ts              배너 / 전면형 / 보상형 훅
 │  └─ lib/toss.ts             뒤로가기 · 닫기 (토스 밖 브라우저에서도 안 죽게 감쌈)
-├─ scripts/fetch-prices.mjs   KAMIS → prices.json 수집 스크립트
+├─ scripts/fetch-prices.mjs   공공데이터포털 → prices/history/recalls.json 수집 스크립트
 ├─ .github/workflows/fetch-prices.yml   하루 2번 자동 수집 → GitHub Pages
 ├─ public/data/prices.json    개발용 샘플 데이터 (실제 값 아님)
 └─ docs/
@@ -44,7 +47,7 @@ today-market/
 
 ### 0일차 — 계정·키 (30분, 승인 대기는 하루 이상 걸릴 수 있음)
 
-1. **KAMIS 키**: https://www.kamis.or.kr 회원가입 → 고객센터 › Open-API › 이용안내 › 신청. 승인되면 `인증키`와 `아이디` 두 개를 받습니다. 가장 오래 걸리니 제일 먼저 넣으세요.
+1. **공공데이터포털 키**: https://www.data.go.kr 가입 → "한국농수산식품유통공사_지역별 품목별 도,소매 가격정보 조회" 활용신청(자동승인) → 마이페이지에서 일반 인증키(Decoding). **식품안전나라 키**: https://www.foodsafetykorea.go.kr 가입 → OpenAPI 이용신청 → I0490 회수·판매중지 → keyId.
 2. **앱인토스 콘솔**: https://developers-apps-in-toss.toss.im 에서 콘솔 진입 → 워크스페이스 생성. 사업자 없이 만들 수 있습니다.
 3. **GitHub 저장소** 하나 만듭니다(공개 저장소여야 Pages가 무료). 이 폴더를 그대로 push.
 
@@ -59,18 +62,18 @@ npm run dev                 # http://localhost:5173 브라우저에서 화면 �
 
 브라우저에서 리스트·상세·설정·즐겨찾기 등록이 되는지 봅니다. `src/lib/config.ts`의 `POPULAR` 순서를 취향대로 바꾸세요.
 
-KAMIS 키가 나왔다면 실데이터로 바꿔봅니다:
+키를 넣고 실데이터로 바꿔봅니다 (public/data 에는 이미 실데이터 한 벌이 들어 있습니다):
 
 ```bash
-# .env 에 KAMIS_CERT_KEY, KAMIS_CERT_ID 넣은 뒤 (윈도우 PowerShell은 $env:KAMIS_CERT_KEY="..." 형태)
+# .env 에 DATA_GO_KR_KEY, FOODSAFETY_KEY 넣은 뒤 (PowerShell: $env:DATA_GO_KR_KEY="..."; $env:FOODSAFETY_KEY="...")
 npm run fetch:prices        # public/data/prices.json 이 실데이터로 덮어써짐
 ```
 
-품목명이 예상과 다르면(예: "파"가 아니라 "대파"로 오는 경우) `POPULAR`의 `item`/`kind` 값을 실데이터에 맞게 고치면 됩니다. 콘솔 로그에 부류별 건수가 찍힙니다.
+품목명은 실제 응답 기준으로 맞춰 두었습니다(31/32 매칭, 딸기는 제철 아님). 바꾸려면 `src/lib/config.ts`의 `POPULAR`에서 품목명은 정확히, 품종·등급은 부분 일치로 적으면 됩니다.
 
 ### 2일차 — 데이터 자동화 (GitHub Actions + Pages)
 
-1. GitHub 저장소 › Settings › **Secrets and variables › Actions** 에 `KAMIS_CERT_KEY`, `KAMIS_CERT_ID` 추가.
+1. GitHub 저장소 › Settings › **Secrets and variables › Actions** 에 `DATA_GO_KR_KEY`, `FOODSAFETY_KEY` 추가.
 2. Actions 탭 › `fetch-prices` › **Run workflow** 로 한 번 수동 실행. 성공하면 `gh-pages` 브랜치가 생깁니다.
 3. Settings › **Pages** › Source를 `Deploy from a branch` / `gh-pages` / `/ (root)` 로 설정.
 4. 1~2분 뒤 `https://know77701.github.io/toss_app/prices.json` 이 열리면 성공.
@@ -144,7 +147,7 @@ npx ait deploy -m "v0.1.0 테스트"      # 콘솔 테스트 환경(intoss-priva
 |---|---|
 | 인기 품목 순서·이름·이모지 | `src/lib/config.ts` › `POPULAR` |
 | 전면형 광고 빈도 (기본 상세 10회당 1회) | `src/lib/config.ts` › `INTERSTITIAL_EVERY_N_DETAIL_OPENS` |
-| 지역 목록 / 잠금 해제 시간 | `src/lib/config.ts` › `REGIONS`, `REGION_UNLOCK_HOURS` (+ `scripts/fetch-prices.mjs` › `REGIONS`) |
+| 지역 목록 / 잠금 해제 시간 | `src/lib/config.ts` › `REGIONS`, `REGION_UNLOCK_HOURS` (+ `scripts/fetch-prices.mjs` › `REGIONS`, 시군구코드) |
 | 무료 즐겨찾기 수 / 보상형 보상 수 | `src/lib/config.ts` › `FREE_FAVORITE_SLOTS`, `REWARD_SLOTS` |
 | 수집 시각 | `.github/workflows/fetch-prices.yml` › `cron` (UTC 기준) |
 | 상단 네비바(뒤로/홈 버튼) | `apps-in-toss.config.ts` › `navigationBar` |

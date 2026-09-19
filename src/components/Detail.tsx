@@ -87,7 +87,7 @@ export default function Detail({ item, isFavorite, history, regday, regionName =
       </div>
 
       <div className="note">
-        오른쪽 등락률은 오늘 가격을 각 시점과 비교한 값입니다. 출처 한국농수산식품유통공사 KAMIS, {regionName} 지역 소매 조사 기준. 매장과 지역에
+        오른쪽 등락률은 오늘 가격을 각 시점과 비교한 값입니다. 출처 공공데이터포털 한국농수산식품유통공사, {regionName} 지역 소매 조사 기준. 매장과 지역에
         따라 실제 판매가는 다를 수 있습니다.
       </div>
     </div>

@@ -1,6 +1,6 @@
 name: fetch-prices
 
-# KAMIS 가격을 하루 2번 받아 GitHub Pages(gh-pages 브랜치)에 prices.json / history.json 으로 올립니다.
+# 공공데이터포털 가격을 하루 2번 받아 GitHub Pages(gh-pages 브랜치)에 prices.json / history.json 으로 올립니다.
 # 앱은 https://<아이디>.github.io/<저장소>/prices.json 과 history.json 을 읽습니다.
 on:
   schedule:
@@ -21,21 +21,10 @@ jobs:
         with:
           node-version: 20
 
-      # 어제까지 쌓인 이력을 gh-pages 에서 가져와 이어 붙입니다.
-      - name: Restore previous history (all regions)
-        run: |
-          mkdir -p out
-          if git fetch origin gh-pages --depth=1 2>/dev/null; then
-            git archive origin/gh-pages | tar -x -C out
-            ls out
-          else
-            echo "gh-pages 브랜치 없음 (첫 실행)"
-          fi
-
       - name: Fetch KAMIS prices
         env:
-          KAMIS_CERT_KEY: ${{ secrets.KAMIS_CERT_KEY }}
-          KAMIS_CERT_ID: ${{ secrets.KAMIS_CERT_ID }}
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          FOODSAFETY_KEY: ${{ secrets.FOODSAFETY_KEY }}
         run: node scripts/fetch-prices.mjs out
 
       - name: Build today's push text

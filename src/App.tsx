@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import BannerAd from './components/BannerAd';
 import Detail from './components/Detail';
 import PriceRow from './components/PriceRow';
+import RecallsScreen, { RecallStrip } from './components/Recalls';
 import RegionSheet from './components/RegionSheet';
 import Settings from './components/Settings';
 import { useInterstitial, useRewarded, useTossAdsInit } from './lib/ads';
@@ -9,6 +10,7 @@ import { CATEGORY_NAME, DEFAULT_REGION, REGIONS, REGION_UNLOCK_HOURS, REWARD_SLO
 import {
   fetchHistory,
   fetchPriceData,
+  fetchRecalls,
   movers,
   orderItems,
   pct,
@@ -16,6 +18,7 @@ import {
   type DisplayItem,
   type HistoryData,
   type PriceData,
+  type RecallData,
 } from './lib/data';
 import {
   addSlots,
@@ -29,7 +32,7 @@ import {
 } from './lib/favorites';
 import { closeMiniApp, onBack } from './lib/toss';
 
-type Screen = { name: 'list' } | { name: 'detail'; item: DisplayItem } | { name: 'settings' };
+type Screen = { name: 'list' } | { name: 'detail'; item: DisplayItem } | { name: 'settings' } | { name: 'recalls' };
 
 function formatDate(regday: string): string {
   const m = regday.match(/(\d{4})-(\d{2})-(\d{2})/);
@@ -57,6 +60,7 @@ export default function App() {
 
   const [data, setData] = useState<PriceData | null>(null);
   const [history, setHistory] = useState<HistoryData | null>(null);
+  const [recalls, setRecalls] = useState<RecallData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [screen, setScreen] = useState<Screen>({ name: 'list' });
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -64,6 +68,11 @@ export default function App() {
   const [slots, setSlots] = useState<number>(() => getSlots());
   const [toast, setToast] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+
+  // 회수 정보는 지역과 무관, 1회 로드
+  useEffect(() => {
+    fetchRecalls().then(setRecalls);
+  }, []);
 
   // 지역이 바뀔 때마다 데이터 다시 로드
   useEffect(() => {
@@ -290,6 +299,8 @@ export default function App() {
                 </div>
               </div>
 
+              <RecallStrip data={recalls} onMore={() => setScreen({ name: 'recalls' })} />
+
               {/* 즐겨찾기 */}
               <div className="section">
                 <div className="section-head">
@@ -324,7 +335,7 @@ export default function App() {
               </div>
 
               <div className="note">
-                출처 한국농수산식품유통공사 KAMIS 농산물유통정보. {region.name} 지역 소매 조사 결과이며 매장에 따라 실제 판매가는 다를 수
+                출처 공공데이터포털 한국농수산식품유통공사 농산물유통정보. {region.name} 지역 소매 조사 결과이며 매장에 따라 실제 판매가는 다를 수
                 있습니다.
               </div>
             </>
@@ -347,6 +358,8 @@ export default function App() {
           onToggleFavorite={toggleFavorite}
         />
       )}
+
+      {screen.name === 'recalls' && <RecallsScreen data={recalls} onBack={() => setScreen({ name: 'list' })} />}
 
       {screen.name === 'settings' && (
         <Settings

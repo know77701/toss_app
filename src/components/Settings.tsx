@@ -58,7 +58,7 @@ export default function Settings({ favoritesCount, slots, onBack, onWatchRewarde
         </div>
         <div className="cell">
           <span>출처</span>
-          <span className="v">한국농수산식품유통공사 KAMIS</span>
+          <span className="v">공공데이터포털 (aT 농산물유통정보)</span>
         </div>
       </div>
 

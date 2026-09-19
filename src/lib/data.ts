@@ -49,10 +49,46 @@ export function dataUrlFor(kind: 'prices' | 'history', regionCode: string): stri
   return `${base}${kind}${suffix}.json`;
 }
 
-export async function fetchPriceData(regionCode = '1101'): Promise<PriceData> {
-  const res = await fetch(dataUrlFor('prices', regionCode), { cache: 'no-store' });
+const CACHE_MS = 6 * 60 * 60 * 1000;
+
+/** 기기 저장소 캐시. 하루 1~2번 갱신되는 파일이라 6시간 안에는 네트워크를 타지 않습니다. */
+async function cachedJson<T>(url: string): Promise<T> {
+  const key = `tm:cache:${url}`;
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const { at, data } = JSON.parse(raw) as { at: number; data: T };
+      if (Date.now() - at < CACHE_MS) return data;
+    }
+  } catch {
+    /* 캐시 못 읽으면 네트워크 */
+  }
+  const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(`데이터를 불러오지 못했습니다 (${res.status})`);
-  const json = (await res.json()) as PriceData;
+  const data = (await res.json()) as T;
+  try {
+    localStorage.setItem(key, JSON.stringify({ at: Date.now(), data }));
+  } catch {
+    /* 용량 초과 등은 무시 */
+  }
+  return data;
+}
+
+/** 원격이 안 되면 빌드에 포함된 스냅샷(public/data)으로 대체. 서울·회수 정보만 스냅샷이 있습니다. */
+async function withFallback<T>(url: string, localName: string): Promise<T> {
+  try {
+    return await cachedJson<T>(url);
+  } catch (e) {
+    if (url.startsWith('/data/')) throw e;
+    const res = await fetch(`/data/${localName}`, { cache: 'no-store' });
+    if (!res.ok) throw e;
+    return (await res.json()) as T;
+  }
+}
+
+export async function fetchPriceData(regionCode = '1101'): Promise<PriceData> {
+  const url = dataUrlFor('prices', regionCode);
+  const json = regionCode === '1101' ? await withFallback<PriceData>(url, 'prices.json') : await cachedJson<PriceData>(url);
   if (!Array.isArray(json.items)) throw new Error('데이터 형식이 올바르지 않습니다');
   return json;
 }
@@ -62,9 +98,7 @@ export async function fetchHistory(regionCode = '1101'): Promise<HistoryData | n
   try {
     const url = dataUrlFor('history', regionCode);
     if (url === DATA_URL) return null;
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) return null;
-    const json = (await res.json()) as HistoryData;
+    const json = regionCode === '1101' ? await withFallback<HistoryData>(url, 'history.json') : await cachedJson<HistoryData>(url);
     return json && json.series ? json : null;
   } catch {
     return null;
@@ -161,8 +195,9 @@ export function orderItems(items: PriceItem[]): DisplayItem[] {
   POPULAR.forEach((m, idx) => {
     const found = items
       .filter((it) => !used.has(it.id) && it.prices.d1 != null)
-      .filter((it) => it.item.includes(m.item))
+      .filter((it) => it.item === m.item)
       .filter((it) => (m.kind ? it.kind.includes(m.kind) : true))
+      .filter((it) => (m.rank ? it.rank.includes(m.rank) : true))
       .sort((a, b) => rankScore(a.rank) - rankScore(b.rank))[0];
     if (found) {
       used.add(found.id);
@@ -173,8 +208,8 @@ export function orderItems(items: PriceItem[]): DisplayItem[] {
   const rest: DisplayItem[] = items
     .filter((it) => !used.has(it.id))
     .sort((a, b) => {
-      const ca = CATEGORY_ORDER.indexOf(a.category);
-      const cb = CATEGORY_ORDER.indexOf(b.category);
+      const ca = (CATEGORY_ORDER.indexOf(a.category) + 100) % 100;
+      const cb = (CATEGORY_ORDER.indexOf(b.category) + 100) % 100;
       if (ca !== cb) return ca - cb;
       if (a.item !== b.item) return a.item.localeCompare(b.item, 'ko');
       return rankScore(a.rank) - rankScore(b.rank);
@@ -282,4 +317,35 @@ export function searchItems(list: DisplayItem[], query: string): DisplayItem[] {
     if (hay.includes(q)) return true;
     return isChosungOnly && toChosung(hay).includes(q);
   });
+}
+
+// ───────────────────────── 회수·판매중지 (식약처)
+
+export type RecallItem = {
+  seq: string;
+  name: string;
+  reason: string;
+  company: string;
+  category: string;
+  type: string;
+  grade: string;
+  unit: string;
+  expiry: string;
+  made: string;
+  barcode: string;
+  image: string | null;
+  date: string; // yyyy-mm-dd
+};
+
+export type RecallData = { updatedAt: string; source: string; items: RecallItem[] };
+
+export async function fetchRecalls(): Promise<RecallData | null> {
+  try {
+    const base = DATA_URL.replace(/prices\.json(\?.*)?$/, '');
+    if (base === DATA_URL) return null;
+    const json = await withFallback<RecallData>(`${base}recalls.json`, 'recalls.json');
+    return json && Array.isArray(json.items) ? json : null;
+  } catch {
+    return null;
+  }
 }
