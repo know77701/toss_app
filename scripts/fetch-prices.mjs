@@ -25,7 +25,7 @@ const FOOD_KEY = process.env.FOODSAFETY_KEY;
 const outDir = process.argv[2] || 'out';
 
 if (!KEY) {
-  console.error('DATA_GO_KR_KEY 환경변수가 필요합니다. (.env.example 참고)');
+  console.error('DATA_GO_KR_KEY 환경변수가 필요합니다. (README 참고)');
   process.exit(1);
 }
 

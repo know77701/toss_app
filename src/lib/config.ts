@@ -1,5 +1,5 @@
 /**
- * 앱 전역 설정. 값은 .env 에서 바꾸세요. (.env.example 참고)
+ * 앱 전역 설정. 값은 .env 에서 바꾸세요. (README 의 환경변수 목록 참고)
  */
 export const DATA_URL: string =
   (import.meta.env.VITE_DATA_URL as string | undefined)?.trim() || '/data/prices.json';

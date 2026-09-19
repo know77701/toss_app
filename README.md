@@ -56,8 +56,7 @@ today-market/
 ```bash
 cd today-market
 npm install
-cp .env.example .env        # 처음엔 값 안 바꿔도 됨 (샘플 데이터 + 테스트 광고 ID)
-npm run dev                 # http://localhost:5173 브라우저에서 화면 확인 (광고는 토스 밖에서 안 뜸)
+npm run dev                 # 터미널에 뜨는 주소를 브라우저에서 열어 확인 (광고는 토스 밖에서 안 뜸)
 ```
 
 브라우저에서 리스트·상세·설정·즐겨찾기 등록이 되는지 봅니다. `src/lib/config.ts`의 `POPULAR` 순서를 취향대로 바꾸세요.
@@ -65,7 +64,11 @@ npm run dev                 # http://localhost:5173 브라우저에서 화면 �
 키를 넣고 실데이터로 바꿔봅니다 (public/data 에는 이미 실데이터 한 벌이 들어 있습니다):
 
 ```bash
-# .env 에 DATA_GO_KR_KEY, FOODSAFETY_KEY 넣은 뒤 (PowerShell: $env:DATA_GO_KR_KEY="..."; $env:FOODSAFETY_KEY="...")
+# 프로젝트 루트에 .env 파일을 만들고 (git 에 올라가지 않음) 아래 이름으로 값을 넣습니다.
+#   VITE_DATA_URL=https://know77701.github.io/toss_app/prices.json
+#   VITE_AD_BANNER_ID=, VITE_AD_INTERSTITIAL_ID=, VITE_AD_REWARDED_ID=   ← 콘솔 광고 그룹 ID
+#   DATA_GO_KR_KEY=, FOODSAFETY_KEY=                                    ← 수집 스크립트용
+# 수집 스크립트는 셸 환경변수로 받습니다. PowerShell: $env:DATA_GO_KR_KEY="..."; $env:FOODSAFETY_KEY="..."
 npm run fetch:prices        # public/data/prices.json 이 실데이터로 덮어써짐
 ```
 
