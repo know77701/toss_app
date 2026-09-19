@@ -35,7 +35,7 @@ const REGIONS = [
   { code: '2100', name: '부산', prefix: ['부산'] },
   { code: '2200', name: '대구', prefix: ['대구'] },
   { code: '2300', name: '인천', prefix: ['인천'] },
-  { code: '2401', name: '광주', prefix: ['광주'] },
+  { code: '2401', name: '광주', prefix: ['광주', '전남광주'] }, // 참가격 주소가 "전남광주 서구 …" 로 오는 매장이 있음
   { code: '2501', name: '대전', prefix: ['대전'] },
   { code: '2601', name: '울산', prefix: ['울산'] },
 ];
@@ -46,7 +46,13 @@ const CHAINS = [
   'CU', '세븐일레븐', '미니스톱', '이마트24', '현대백화점', '신세계백화점', '롯데백화점', '갤러리아', 'AK플라자', '메가마트',
   '하나로마트', '하나로클럽', '코스트코', '탑마트', '서원유통', '킴스클럽', '노브랜드',
 ];
-const chainOf = (name) => CHAINS.find((c) => name.startsWith(c)) || name.replace(/\(.*$/, '').replace(/[가-힣]{1,3}점$/, '');
+const chainOf = (name) => {
+  const clean = name.replace(/^\(주\)\s*/, '').replace(/^주식회사\s*/, '');
+  const hit = CHAINS.find((c) => clean.startsWith(c));
+  if (hit) return hit;
+  const stripped = clean.replace(/\(.*$/, '').replace(/[가-힣]{1,3}점$/, '').trim();
+  return stripped || clean || name;
+};
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const q = (p, extra) => `${BASE}${p}?serviceKey=${encodeURIComponent(KEY)}&${extra}`;
