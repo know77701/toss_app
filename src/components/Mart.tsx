@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import MarketSection from './Market';
 import { MART_AREA, MART_POPULAR } from '../lib/config';
-import { closureDates, distanceKm, fmtKm, shortDate, splitProductName, weekdayKo, won, type GeoData, type MarketData, type MartData, type MartProduct } from '../lib/data';
+import { closureDates, distanceKm, fmtKm, perUnitText, shortDate, splitProductName, weekdayKo, won, type GeoData, type MarketData, type MartData, type MartProduct } from '../lib/data';
 
 type Props = {
   data: MartData | null;
@@ -172,7 +172,7 @@ function ProductRow({
   const spread = p.max - p.min;
   const spreadPct = p.min > 0 ? (spread / p.min) * 100 : 0;
   const { title, maker, spec } = splitProductName(p.name);
-  const sub = [spec ?? p.unit, maker, `${p.prices.length}개 매장`].filter(Boolean).join(' · ');
+  const sub = [spec ?? p.unit, maker, perUnitText(p.min, spec ?? p.unit), `${p.prices.length}개 매장`].filter(Boolean).join(' · ');
   return (
     <div className={`row-wrap ${open ? 'open' : ''}`}>
       <div className="row" role="button" tabIndex={0} onClick={onToggle} onKeyDown={(e) => e.key === 'Enter' && onToggle()}>

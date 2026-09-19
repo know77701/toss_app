@@ -1,5 +1,5 @@
 import Chart from './Chart';
-import { change, pct, seriesFor, won, type DisplayItem, type HistoryData } from '../lib/data';
+import { change, pct, perUnitText, seriesFor, won, type DisplayItem, type HistoryData } from '../lib/data';
 
 type Props = {
   item: DisplayItem;
@@ -17,7 +17,7 @@ type Props = {
 export default function PriceRow({ item, isFavorite, inBasket, expanded, history, regday, onToggle, onDetail, onToggleFavorite, onAddBasket }: Props) {
   const c = change(item);
   const cls = !c || Math.abs(c.pct) < 0.05 ? 'flat' : c.pct > 0 ? 'up' : 'down';
-  const sub = [item.kind && item.kind !== item.item ? item.kind : '', item.rank, item.unit].filter(Boolean).join(' · ');
+  const sub = [item.kind && item.kind !== item.item ? item.kind : '', item.rank, item.unit, perUnitText(item.prices.d1, item.unit)].filter(Boolean).join(' · ');
 
   return (
     <div id={`row-${item.id}`} className={`row-wrap ${expanded ? 'open' : ''}`}>

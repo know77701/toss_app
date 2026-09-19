@@ -585,3 +585,55 @@ export function cheapNow(list: DisplayItem[], n = 5): CheapNow[] {
   }
   return out.sort((a, b) => b.pct - a.pct).slice(0, n);
 }
+
+// ───────────────────────── 단위당 가격
+
+export type PerUnit = { label: string; factor: number };
+
+const WEIGHT: Record<string, number> = { kg: 1000, g: 1 };
+const VOLUME: Record<string, number> = { l: 1000, ml: 1 };
+const COUNT = ['개입', '개', '구', '입', '롤', '매', '장', '캔', '봉', '마리', '포기', '팩', '병', '통', '묶음', '번들', '세트', '인', '손'];
+
+/**
+ * 규격 문자열을 "기준 단위 몇 개 분량"으로 환산합니다.
+ *   "1kg" → 100g당 (factor 10) · "120g*5개입" → 100g당 (factor 6) · "10개" → 1개당 (factor 10) · "1L" → 100ml당 (factor 10)
+ * 무게 > 부피 > 개수 순으로 우선하고, 환산해도 그대로(factor 1)면 null 을 돌려 표시하지 않습니다.
+ */
+export function perUnit(spec: string | null | undefined): PerUnit | null {
+  if (!spec) return null;
+  const s = spec.replace(/\s+/g, '').toLowerCase();
+  let grams = 0;
+  let ml = 0;
+  let count = 0;
+  let countUnit = '';
+  for (const m of s.matchAll(/([\d.]+)(kg|g|ml|l|[가-힣]+)/g)) {
+    const n = Number(m[1]);
+    const u = m[2];
+    if (!Number.isFinite(n) || n <= 0) continue;
+    if (u in WEIGHT) grams = (grams || 1) * n * WEIGHT[u];
+    else if (u in VOLUME) ml = (ml || 1) * n * VOLUME[u];
+    else {
+      const cu = COUNT.find((c) => u.startsWith(c));
+      if (cu) {
+        count = (count || 1) * n;
+        countUnit = cu === '개입' || cu === '입' ? '개' : cu;
+      }
+    }
+  }
+  // "120g*5개입" 처럼 무게×개수면 총 무게
+  if (grams && count) grams *= count;
+  if (ml && count) ml *= count;
+  if (grams) return grams === 100 ? null : { label: '100g당', factor: grams / 100 };
+  if (ml) return ml === 100 ? null : { label: '100ml당', factor: ml / 100 };
+  if (count > 1) return { label: `1${countUnit}당`, factor: count };
+  return null;
+}
+
+/** 단위당 가격 문구. 표시할 게 없으면 null */
+export function perUnitText(price: number | null | undefined, spec: string | null | undefined): string | null {
+  if (price == null) return null;
+  const pu = perUnit(spec);
+  if (!pu) return null;
+  const v = price / pu.factor;
+  return `${pu.label} ${v < 100 ? v.toFixed(1) : Math.round(v).toLocaleString('ko-KR')}원`;
+}

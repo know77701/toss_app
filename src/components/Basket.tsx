@@ -4,6 +4,7 @@ import {
   fmtKm,
   martBasketTotals,
   pct,
+  perUnitText,
   splitProductName,
   won,
   type BasketEntry,
@@ -187,7 +188,7 @@ export default function BasketScreen({ entries, freshItems, mart, geo, userPos, 
           <BasketLine
             key={`f-${e.id}`}
             name={it.label}
-            sub={`${it.unit} · 오늘 ${won(it.prices.d1)}`}
+            sub={[it.unit, `오늘 ${won(it.prices.d1)}`, perUnitText(it.prices.d1, it.unit)].filter(Boolean).join(' · ')}
             qty={e.qty}
             total={(it.prices.d1 ?? 0) * e.qty}
             onQty={(d) => onQty(e, d)}
@@ -200,7 +201,7 @@ export default function BasketScreen({ entries, freshItems, mart, geo, userPos, 
             <BasketLine
               key={`m-${e.id}`}
               name={title}
-              sub={[spec ?? p.unit, maker, `평균 ${won(p.avg)}`, `최저 ${won(p.min)}`].filter(Boolean).join(' · ')}
+              sub={[spec ?? p.unit, maker, `평균 ${won(p.avg)}`, perUnitText(p.min, spec ?? p.unit)?.replace('당', '당 최저')].filter(Boolean).join(' · ')}
               qty={e.qty}
               total={p.avg * e.qty}
               onQty={(d) => onQty(e, d)}
