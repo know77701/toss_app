@@ -628,3 +628,276 @@ button {
   font-size: 11px;
   color: var(--text-3);
 }
+
+/* ───────── 반응형 / 가로 스크롤 방지 ───────── */
+html,
+body {
+  overflow-x: hidden;
+  width: 100%;
+  word-break: keep-all;
+}
+.app {
+  width: 100%;
+  overflow-x: hidden;
+}
+.movers {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.movers .col {
+  min-width: 0;
+}
+.mover {
+  min-width: 0;
+}
+.chart svg {
+  max-width: 100%;
+}
+.row .price {
+  flex-shrink: 0;
+}
+
+/* 작은 폰 (≤ 360px): 여백·글자 축소, 상승/하락 두 칸 유지 */
+@media (max-width: 360px) {
+  body {
+    font-size: 14px;
+  }
+  .top,
+  .row,
+  .cell,
+  .nav,
+  .hero,
+  .search,
+  .dash,
+  .section-head,
+  .group-head,
+  .expand,
+  .note,
+  .recall-card,
+  .sheet-row,
+  .sheet-title,
+  .sheet-desc,
+  .cell-desc,
+  .fav-empty,
+  .search-empty {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .summary,
+  .table,
+  .btn,
+  .toast {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+  .btn {
+    width: calc(100% - 32px);
+  }
+  .movers {
+    gap: 8px;
+  }
+  .movers .col {
+    padding: 10px 10px;
+  }
+  .mover {
+    font-size: 12px;
+  }
+  .top h1 {
+    font-size: 20px;
+  }
+  .hero .price {
+    font-size: 28px;
+  }
+  .table .tr .v {
+    width: 84px;
+  }
+  .table .tr .d {
+    width: 60px;
+  }
+  .row .price .c {
+    font-size: 11px;
+  }
+}
+
+/* 아주 좁은 화면 (≤ 320px): 상승/하락을 위아래로 */
+@media (max-width: 320px) {
+  .movers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 태블릿·폴더블 (≥ 600px): 본문을 가운데 640px 로 고정 */
+@media (min-width: 600px) {
+  .app {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .banner-wrap > .banner-slot,
+  .toast,
+  .sheet {
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* 탭 · 마트 */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin: 4px 20px 10px;
+  padding: 3px;
+  background: var(--bg-sub);
+  border-radius: 10px;
+}
+.tabs button {
+  flex: 1;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 0;
+  background: transparent;
+  font-size: 14px;
+  color: var(--text-2);
+}
+.tabs button.on {
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+.mart-meta {
+  padding: 0 20px 4px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.chain-list {
+  display: flex;
+  flex-direction: column;
+}
+.chain-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line);
+}
+.chain-row:last-child {
+  border-bottom: 0;
+}
+.chain-row .n {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chain-row .v {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.chain-row .tag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--line-2);
+  color: var(--text-2);
+  font-size: 10px;
+  vertical-align: 1px;
+}
+@media (max-width: 360px) {
+  .tabs,
+  .mart-meta {
+    margin-left: 16px;
+    margin-right: 16px;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .mart-meta {
+    padding-left: 16px;
+    padding-right: 16px;
+    margin: 0;
+  }
+}
+
+/* 의무휴업 안내 */
+.closure {
+  margin: 8px 20px 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+.closure-t {
+  font-size: 14px;
+  color: var(--text);
+}
+.closure-t b {
+  color: #c2410c;
+  font-variant-numeric: tabular-nums;
+}
+.closure-s {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.45;
+}
+@media (max-width: 360px) {
+  .closure {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+}
+
+/* 마트 휴무 하단 바 (광고 배너 바로 위) */
+.closure-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--banner-h) + env(safe-area-inset-bottom));
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 20px;
+  border: 0;
+  border-top: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+}
+.closure-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: #ea580c;
+  flex-shrink: 0;
+}
+.closure-text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.closure-text b {
+  color: #c2410c;
+  font-variant-numeric: tabular-nums;
+}
+.closure-more {
+  color: var(--text-2);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.app.has-closure {
+  padding-bottom: calc(var(--banner-h) + env(safe-area-inset-bottom) + 48px);
+}
+@media (min-width: 600px) {
+  .closure-bar {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+}

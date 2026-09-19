@@ -27,6 +27,12 @@ jobs:
           FOODSAFETY_KEY: ${{ secrets.FOODSAFETY_KEY }}
         run: node scripts/fetch-prices.mjs out
 
+      - name: Fetch 참가격 (mart prices)
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+        run: node scripts/fetch-mart.mjs out
+        continue-on-error: true
+
       - name: Build today's push text
         run: node scripts/build-push.mjs out
 

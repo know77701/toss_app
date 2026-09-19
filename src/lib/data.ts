@@ -42,7 +42,7 @@ export type DisplayItem = PriceItem & {
 // ───────────────────────── 로드
 
 /** 지역별 파일 경로. 서울(1101)은 prices.json, 그 외는 prices.<code>.json */
-export function dataUrlFor(kind: 'prices' | 'history', regionCode: string): string {
+export function dataUrlFor(kind: 'prices' | 'history' | 'mart', regionCode: string): string {
   const base = DATA_URL.replace(/prices\.json(\?.*)?$/, '');
   if (base === DATA_URL) return DATA_URL; // 예상 밖 경로면 그대로
   const suffix = regionCode === '1101' ? '' : `.${regionCode}`;
@@ -348,4 +348,67 @@ export async function fetchRecalls(): Promise<RecallData | null> {
   } catch {
     return null;
   }
+}
+
+// ───────────────────────── 마트 물가 (한국소비자원 참가격)
+
+export type MartStore = { id: string; name: string; chain: string; type: string; typeName: string };
+export type MartProduct = {
+  id: string;
+  name: string;
+  unit: string;
+  cls: string;
+  /** [매장 인덱스, 가격] 오름차순 */
+  prices: Array<[number, number]>;
+  min: number;
+  max: number;
+  avg: number;
+  chainAvg: Record<string, number>;
+};
+export type MartData = {
+  updatedAt: string;
+  inspectDay: string;
+  region: string;
+  regionCode: string;
+  source: string;
+  stores: MartStore[];
+  products: MartProduct[];
+};
+
+export async function fetchMart(regionCode = '1101'): Promise<MartData | null> {
+  try {
+    const url = dataUrlFor('mart', regionCode);
+    if (url === DATA_URL) return null;
+    const json = regionCode === '1101' ? await withFallback<MartData>(url, 'mart.json') : await cachedJson<MartData>(url);
+    return json && Array.isArray(json.products) ? json : null;
+  } catch {
+    return null;
+  }
+}
+
+// ───────────────────────── 대형마트 의무휴업일
+
+import { MART_CLOSURE, type ClosureRule } from './config';
+
+/** 이번 달과 다음 달의 의무휴업 예정일 (yyyy-mm-dd) */
+export function closureDates(regionCode: string, from = new Date()): { dates: string[]; rule: ClosureRule } {
+  const rule = MART_CLOSURE[regionCode] ?? MART_CLOSURE.default;
+  const out: string[] = [];
+  for (let m = 0; m < 2; m++) {
+    const y = from.getFullYear();
+    const mo = from.getMonth() + m;
+    const first = new Date(y, mo, 1);
+    let count = 0;
+    for (let d = new Date(first); d.getMonth() === first.getMonth(); d.setDate(d.getDate() + 1)) {
+      if (d.getDay() !== rule.weekday) continue;
+      count++;
+      if (rule.weeks.includes(count)) out.push(`${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`);
+    }
+  }
+  const today = `${from.getFullYear()}-${pad2(from.getMonth() + 1)}-${pad2(from.getDate())}`;
+  return { dates: out.filter((d) => d >= today), rule };
+}
+
+export function weekdayKo(date: string): string {
+  return ['일', '월', '화', '수', '목', '금', '토'][new Date(`${date}T00:00:00`).getDay()];
 }

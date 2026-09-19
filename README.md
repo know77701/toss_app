@@ -7,10 +7,11 @@
 **데이터 파일**
 - `prices.json` 서울 오늘 가격 + 어제·1주·2주·1개월·1년 전. 다른 지역은 `prices.<지역코드>.json` (부산 2100, 대구 2200, 인천 2300, 광주 2401, 대전 2501, 울산 2601). 평년 값은 이 API에 없어 비교표에서 빠집니다.
 - `history.json` / `history.<지역코드>.json` 최근 40일 일별 가격. 날짜 범위로 한 번에 받으므로 첫날부터 그래프가 채워집니다.
+- `mart.json` / `mart.<지역코드>.json` 한국소비자원 참가격 생필품(≈330개) 매장별 가격. 격주 금요일 조사
 - `recalls.json` 식약처 회수·판매중지 최근 30건
 - `push.json` 오늘 보낼 푸시 문구 1개 (제목·본문·딥링크)
 
-**비용**: 공공데이터포털·식품안전나라 API 무료, GitHub Actions·Pages 공개 저장소 무료, 앱인토스 콘솔·광고 SDK 무료. **돈 드는 건 없습니다.** 하루 호출은 약 65회, 개발계정 한도 10,000회.
+**비용**: 공공데이터포털·식품안전나라 API 무료, GitHub Actions·Pages 공개 저장소 무료, 앱인토스 콘솔·광고 SDK 무료. **돈 드는 건 없습니다.** 하루 호출은 농산물 약 65회 + 참가격 약 350회, 개발계정 한도 10,000회.
 
 **조회 시 API 호출 없음**: 사용자가 앱을 열 때는 GitHub Pages 의 JSON 만 읽고, 그마저도 기기에 6시간 캐시합니다. 외부 API는 GitHub Actions 배치만 호출합니다. 앱인토스는 서버 DB를 제공하지 않아서(공식 문서: 로컬 Storage 또는 Supabase·Firebase 권장) 정적 JSON 을 저장소로 씁니다.
 
@@ -19,6 +20,7 @@
 **딥링크** (푸시에서 특정 품목으로 보낼 때)
 - `intoss://todaymarketprice?item=<id>` 해당 품목이 펼쳐진 목록
 - `intoss://todaymarketprice?item=<id>&view=detail` 해당 품목 상세
+- `intoss://todaymarketprice?tab=mart` 마트 생필품 탭
 - id는 `prices.json` 의 `items[].id` (예: 계란 `500-4501-01-`)
 
 `@apps-in-toss/web-framework` **3.4.1** 기준으로 작성·빌드 검증했습니다. (`npm run build` 로 `todaymarketprice.ait` 생성 확인)
@@ -33,6 +35,7 @@ today-market/
 │  ├─ lib/ads.ts              배너 / 전면형 / 보상형 훅
 │  └─ lib/toss.ts             뒤로가기 · 닫기 (토스 밖 브라우저에서도 안 죽게 감쌈)
 ├─ scripts/fetch-prices.mjs   공공데이터포털 → prices/history/recalls.json 수집 스크립트
+├─ scripts/fetch-mart.mjs     한국소비자원 참가격 → mart.json (마트 생필품) 수집 스크립트
 ├─ .github/workflows/fetch-prices.yml   하루 2번 자동 수집 → GitHub Pages
 ├─ public/data/prices.json    개발용 샘플 데이터 (실제 값 아님)
 └─ docs/
@@ -47,7 +50,7 @@ today-market/
 
 ### 0일차 — 계정·키 (30분, 승인 대기는 하루 이상 걸릴 수 있음)
 
-1. **공공데이터포털 키**: https://www.data.go.kr 가입 → "한국농수산식품유통공사_지역별 품목별 도,소매 가격정보 조회" 활용신청(자동승인) → 마이페이지에서 일반 인증키(Decoding). **식품안전나라 키**: https://www.foodsafetykorea.go.kr 가입 → OpenAPI 이용신청 → I0490 회수·판매중지 → keyId.
+1. **공공데이터포털 키**: https://www.data.go.kr 가입 → "한국농수산식품유통공사_지역별 품목별 도,소매 가격정보 조회" 와 "한국소비자원_생필품 가격 정보_GW" 두 개 활용신청(자동승인) → 마이페이지에서 일반 인증키(Decoding). **식품안전나라 키**: https://www.foodsafetykorea.go.kr 가입 → OpenAPI 이용신청 → I0490 회수·판매중지 → keyId.
 2. **앱인토스 콘솔**: https://developers-apps-in-toss.toss.im 에서 콘솔 진입 → 워크스페이스 생성. 사업자 없이 만들 수 있습니다.
 3. **GitHub 저장소** 하나 만듭니다(공개 저장소여야 Pages가 무료). 이 폴더를 그대로 push.
 

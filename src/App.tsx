@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import BannerAd from './components/BannerAd';
 import Detail from './components/Detail';
+import MartScreen from './components/Mart';
 import PriceRow from './components/PriceRow';
 import RecallsScreen, { RecallStrip } from './components/Recalls';
 import RegionSheet from './components/RegionSheet';
@@ -9,6 +10,7 @@ import { useInterstitial, useRewarded, useTossAdsInit } from './lib/ads';
 import { CATEGORY_NAME, DEFAULT_REGION, REGIONS, REGION_UNLOCK_HOURS, REWARD_SLOTS, type Region } from './lib/config';
 import {
   fetchHistory,
+  fetchMart,
   fetchPriceData,
   fetchRecalls,
   movers,
@@ -17,6 +19,7 @@ import {
   searchItems,
   type DisplayItem,
   type HistoryData,
+  type MartData,
   type PriceData,
   type RecallData,
 } from './lib/data';
@@ -61,6 +64,9 @@ export default function App() {
   const [data, setData] = useState<PriceData | null>(null);
   const [history, setHistory] = useState<HistoryData | null>(null);
   const [recalls, setRecalls] = useState<RecallData | null>(null);
+  const [mart, setMart] = useState<MartData | null>(null);
+  const [martLoading, setMartLoading] = useState(false);
+  const [tab, setTab] = useState<'fresh' | 'mart'>('fresh');
   const [error, setError] = useState<string | null>(null);
   const [screen, setScreen] = useState<Screen>({ name: 'list' });
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -84,6 +90,13 @@ export default function App() {
       .then((d) => alive && setData(d))
       .catch((e: Error) => alive && setError(e.message));
     fetchHistory(region.code).then((h) => alive && setHistory(h));
+    setMart(null);
+    setMartLoading(true);
+    fetchMart(region.code).then((m) => {
+      if (!alive) return;
+      setMart(m);
+      setMartLoading(false);
+    });
     return () => {
       alive = false;
     };
@@ -123,10 +136,12 @@ export default function App() {
 
   // 딥링크: ?item=<id>            → 해당 품목 펼친 상태로 목록
   //        ?item=<id>&view=detail → 해당 품목 상세
+  //        ?tab=mart               → 마트 생필품 탭
   // 푸시 알림에서 특정 품목으로 바로 보낼 때 씁니다. (예: intoss://todaymarketprice?item=500-4501-01-)
   useEffect(() => {
     if (!list.length) return;
     const q = new URLSearchParams(location.search);
+    if (q.get('tab') === 'mart') setTab('mart');
     const id = q.get('item');
     if (!id) return;
     const target = list.find((x) => x.id === id);
@@ -226,7 +241,7 @@ export default function App() {
   });
 
   return (
-    <div className="app">
+    <div className={`app ${screen.name === 'list' && tab === 'mart' ? 'has-closure' : ''}`}>
       {screen.name === 'list' && (
         <>
           <div className="top">
@@ -258,6 +273,19 @@ export default function App() {
           {!error && !data && <div className="state">불러오는 중</div>}
 
           {data && (
+            <div className="tabs" role="tablist">
+              <button role="tab" className={tab === 'fresh' ? 'on' : ''} onClick={() => setTab('fresh')}>
+                농축수산물
+              </button>
+              <button role="tab" className={tab === 'mart' ? 'on' : ''} onClick={() => setTab('mart')}>
+                마트 생필품
+              </button>
+            </div>
+          )}
+
+          {data && tab === 'mart' && <MartScreen data={mart} loading={martLoading} regionName={region.name} regionCode={region.code} />}
+
+          {data && tab === 'fresh' && (
             <div className="search">
               <div className="search-box">
                 <input
@@ -278,7 +306,7 @@ export default function App() {
             </div>
           )}
 
-          {data && searching && (
+          {data && tab === 'fresh' && searching && (
             <div className="section" style={{ marginTop: 8 }}>
               <div className="section-head">검색 결과 {results.length}개</div>
               {results.length === 0 ? (
@@ -289,7 +317,7 @@ export default function App() {
             </div>
           )}
 
-          {data && !searching && (
+          {data && tab === 'fresh' && !searching && (
             <>
               {/* 대시보드: 어제 대비 상승·하락 상위 5 */}
               <div className="dash">
