@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { BASKET_PRESETS, type BasketPreset } from '../lib/config';
 import {
   fmtKm,
@@ -25,12 +25,16 @@ type Props = {
   onGoFresh: () => void;
   onGoMart: () => void;
   onLocate: () => void;
-  onPreset: (preset: BasketPreset) => void;
+  onPreset: (preset: BasketPreset, mode: 'add' | 'replace') => void;
+  onClear: () => void;
   activePreset: string | null;
+  previewPreset: (preset: BasketPreset) => { count: number; missing: string[] };
 };
 
 /** 장바구니: 농산물은 오늘 vs 1개월 전, 마트 상품은 매장별 합계로 "어디가 싼가" */
-export default function BasketScreen({ entries, freshItems, mart, geo, userPos, regionName, onQty, onRemove, onGoFresh, onGoMart, onLocate, onPreset, activePreset }: Props) {
+export default function BasketScreen({ entries, freshItems, mart, geo, userPos, regionName, onQty, onRemove, onGoFresh, onGoMart, onLocate, onPreset, onClear, activePreset, previewPreset }: Props) {
+  const [pending, setPending] = useState<BasketPreset | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
   const fresh = useMemo(
     () =>
       entries
@@ -60,13 +64,31 @@ export default function BasketScreen({ entries, freshItems, mart, geo, userPos, 
   const yearPct = yearAgo > 0 ? ((yearToday - yearAgo) / yearAgo) * 100 : null;
 
   const presetChips = (
-    <div className="presets">
-      {BASKET_PRESETS.map((p) => (
-        <button key={p.id} className={`chip ${activePreset === p.id ? 'on' : ''}`} onClick={() => onPreset(p)} title={p.desc}>
-          {p.name}
-        </button>
-      ))}
-    </div>
+    <>
+      <div className="presets">
+        {BASKET_PRESETS.map((p) => (
+          <button key={p.id} className="chip" onClick={() => setPending(p)} title={p.desc}>
+            {p.name}
+          </button>
+        ))}
+      </div>
+      {pending && (
+        <PresetSheet
+          preset={pending}
+          preview={previewPreset(pending)}
+          hasItems={entries.length > 0}
+          onAdd={() => {
+            onPreset(pending, 'add');
+            setPending(null);
+          }}
+          onReplace={() => {
+            onPreset(pending, 'replace');
+            setPending(null);
+          }}
+          onClose={() => setPending(null)}
+        />
+      )}
+    </>
   );
 
   if (entries.length === 0) {
@@ -183,7 +205,30 @@ export default function BasketScreen({ entries, freshItems, mart, geo, userPos, 
 
       {/* 담은 품목 */}
       <div className="section">
-        <div className="section-head">담은 품목</div>
+        <div className="section-head recall-head">
+          <span>담은 품목 {entries.length}개</span>
+          {confirmClear ? (
+            <span className="clear-confirm">
+              전체 삭제할까요?
+              <button
+                className="text-btn danger"
+                onClick={() => {
+                  onClear();
+                  setConfirmClear(false);
+                }}
+              >
+                삭제
+              </button>
+              <button className="text-btn" onClick={() => setConfirmClear(false)}>
+                취소
+              </button>
+            </span>
+          ) : (
+            <button className="text-btn" onClick={() => setConfirmClear(true)}>
+              전체 삭제
+            </button>
+          )}
+        </div>
         {fresh.map(({ e, it }) => (
           <BasketLine
             key={`f-${e.id}`}
@@ -235,8 +280,8 @@ function BasketLine({ name, sub, qty, total, onQty, onRemove }: { name: string; 
         <div className="s">{sub}</div>
       </div>
       <div className="qty">
-        <button onClick={() => (qty <= 1 ? onRemove() : onQty(-1))} aria-label="줄이기">
-          {qty <= 1 ? '✕' : '−'}
+        <button onClick={() => onQty(-1)} disabled={qty <= 1} aria-label="줄이기">
+          −
         </button>
         <span>{qty}</span>
         <button onClick={() => onQty(1)} aria-label="늘리기">
@@ -245,7 +290,54 @@ function BasketLine({ name, sub, qty, total, onQty, onRemove }: { name: string; 
       </div>
       <div className="price">
         <div className="p">{won(total)}</div>
+        <button className="line-remove" onClick={onRemove}>
+          삭제
+        </button>
       </div>
     </div>
+  );
+}
+
+/** 프리셋 확인 시트: 잘못 눌러도 바로 반영되지 않고, 기존 장바구니를 지울지 고르게 합니다 */
+function PresetSheet({
+  preset,
+  preview,
+  hasItems,
+  onAdd,
+  onReplace,
+  onClose,
+}: {
+  preset: BasketPreset;
+  preview: { count: number; missing: string[] };
+  hasItems: boolean;
+  onAdd: () => void;
+  onReplace: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div className="sheet-bg" onClick={onClose} />
+      <div className="sheet" role="dialog" aria-label={preset.name}>
+        <div className="sheet-title">{preset.name}</div>
+        <div className="sheet-desc">
+          {preset.desc}
+          <br />이 지역 데이터로 {preview.count}가지를 담을 수 있습니다.
+          {preview.missing.length > 0 && ` (${preview.missing.join(', ')}는 조사 품목에 없어 제외)`}
+        </div>
+        <div style={{ padding: '4px 20px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <button className="btn" style={{ margin: 0, width: '100%' }} onClick={onAdd}>
+            {hasItems ? '기존 장바구니에 추가' : '장바구니에 담기'}
+          </button>
+          {hasItems && (
+            <button className="btn sub" style={{ margin: 0, width: '100%' }} onClick={onReplace}>
+              기존 비우고 이걸로 담기
+            </button>
+          )}
+          <button className="btn sub" style={{ margin: 0, width: '100%', background: 'transparent' }} onClick={onClose}>
+            취소
+          </button>
+        </div>
+      </div>
+    </>
   );
 }

@@ -269,18 +269,44 @@ export default function App() {
     [updateBasket],
   );
   const usePreset = useCallback(
-    (preset: BasketPreset) => {
+    (preset: BasketPreset, mode: 'add' | 'replace') => {
       const { entries, missing } = applyPreset(preset, list, mart);
       if (entries.length === 0) {
         setToast('이 지역 데이터에 프리셋 재료가 없습니다');
         return;
       }
-      updateBasket(() => entries);
-      setActivePreset(preset.id);
-      setToast(missing.length ? `${preset.name} 담았습니다 (${missing.join(', ')} 제외)` : `${preset.name} 담았습니다`);
+      if (mode === 'replace') {
+        updateBasket(() => entries);
+        setActivePreset(preset.id);
+      } else {
+        // 추가: 이미 있는 품목은 수량을 더 큰 쪽으로만 맞추고(중복 합산 방지), 없는 품목만 새로 넣음
+        updateBasket((prev) => {
+          const next = [...prev];
+          for (const e of entries) {
+            const i = next.findIndex((b) => b.kind === e.kind && b.id === e.id);
+            if (i >= 0) next[i] = { ...next[i], qty: Math.max(next[i].qty, e.qty) };
+            else next.push(e);
+          }
+          return next;
+        });
+        setActivePreset((cur) => (cur && basket.length ? null : preset.id));
+      }
+      setToast(missing.length ? `${preset.name} ${entries.length}가지 담았습니다 (${missing.join(', ')} 제외)` : `${preset.name} ${entries.length}가지 담았습니다`);
     },
-    [list, mart, updateBasket],
+    [list, mart, updateBasket, basket.length],
   );
+  const previewPreset = useCallback(
+    (preset: BasketPreset) => {
+      const { entries, missing } = applyPreset(preset, list, mart);
+      return { count: entries.length, missing };
+    },
+    [list, mart],
+  );
+  const clearBasket = useCallback(() => {
+    updateBasket(() => []);
+    setActivePreset(null);
+    setToast('장바구니를 비웠습니다');
+  }, [updateBasket]);
   const removeEntry = useCallback((entry: BasketEntry) => updateBasket((prev) => prev.filter((b) => !(b.kind === entry.kind && b.id === entry.id))), [updateBasket]);
 
   // ── 내 위치 (버튼을 눌렀을 때만 요청, 저장하지 않음)
@@ -404,7 +430,9 @@ export default function App() {
               onGoMart={() => setTab('mart')}
               onLocate={locate}
               onPreset={usePreset}
+              onClear={clearBasket}
               activePreset={activePreset}
+              previewPreset={previewPreset}
             />
           )}
 
