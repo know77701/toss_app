@@ -32,14 +32,25 @@ const STORE_TAG = 'iros.openapi.service.vo.entpInfoVO';
 // 앱의 src/lib/config.ts REGIONS 와 같은 코드. 주소 앞글자로 매장을 나눕니다.
 const REGIONS = [
   { code: '1101', name: '서울', prefix: ['서울'] },
+  { code: '3111', name: '경기(수원)', prefix: ['경기'] },
+  { code: '3112', name: '성남', prefix: ['경기도 성남', '경기 성남'] },
+  { code: '2300', name: '인천', prefix: ['인천'] },
   { code: '2100', name: '부산', prefix: ['부산'] },
   { code: '2200', name: '대구', prefix: ['대구'] },
-  { code: '2300', name: '인천', prefix: ['인천'] },
-  { code: '2401', name: '광주', prefix: ['광주', '전남광주'] }, // 참가격 주소가 "전남광주 서구 …" 로 오는 매장이 있음
+  { code: '2401', name: '광주', prefix: ['광주', '전남광주'] },
   { code: '2501', name: '대전', prefix: ['대전'] },
   { code: '2601', name: '울산', prefix: ['울산'] },
-  { code: '3111', name: '경기(수원)', prefix: ['경기'] }, // 경기 전체 매장 (수원·성남·고양·용인 …)
-  { code: '3112', name: '성남', prefix: ['경기도 성남', '경기 성남'] },
+  { code: '2701', name: '세종', prefix: ['세종'] },
+  { code: '3211', name: '강원(춘천)', prefix: ['강원'] },
+  { code: '3214', name: '강릉', prefix: ['강원도 강릉', '강원 강릉', '강원특별자치도 강릉'] },
+  { code: '3311', name: '충북(청주)', prefix: ['충북', '충청북도'] },
+  { code: '3411', name: '충남(천안)', prefix: ['충남', '충청남도'] },
+  { code: '3511', name: '전북(전주)', prefix: ['전북', '전라북도'] },
+  { code: '3613', name: '전남(순천)', prefix: ['전라남도', '전남 '] },
+  { code: '3711', name: '경북(포항)', prefix: ['경북', '경상북도'] },
+  { code: '3714', name: '안동', prefix: ['경북 안동', '경상북도 안동'] },
+  { code: '3814', name: '경남(창원)', prefix: ['경남', '경상남도'] },
+  { code: '3911', name: '제주', prefix: ['제주'] },
 ];
 const TYPE_NAME = { LM: '대형마트', SM: '기업형슈퍼', DP: '백화점', CS: '편의점', TM: '전통시장' };
 // 매장 이름 앞부분 → 체인명

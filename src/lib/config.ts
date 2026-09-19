@@ -79,19 +79,31 @@ export const CATEGORY_NAME: Record<string, string> = {
 
 /**
  * 지역. 서울은 항상 무료, 나머지는 보상형 광고를 보면 REGION_UNLOCK_HOURS 동안 열립니다.
+ * 도 단위 이름은 그 도에서 농산물 소매 조사를 하는 대표 도시입니다(괄호). 마트 가격은 도 전체 매장을 씁니다.
  * code 는 KAMIS 소매 지역코드. 수집 스크립트(scripts/fetch-prices.mjs)의 REGIONS 와 같아야 합니다.
  */
 export type Region = { code: string; name: string; free?: boolean };
 export const REGIONS: Region[] = [
   { code: '1101', name: '서울', free: true },
+  { code: '3111', name: '경기(수원)' },
+  { code: '3112', name: '성남' },
+  { code: '2300', name: '인천' },
   { code: '2100', name: '부산' },
   { code: '2200', name: '대구' },
-  { code: '2300', name: '인천' },
   { code: '2401', name: '광주' },
   { code: '2501', name: '대전' },
   { code: '2601', name: '울산' },
-  { code: '3111', name: '경기(수원)' }, // 농산물은 수원 조사, 마트는 경기 전체 매장
-  { code: '3112', name: '성남' },
+  { code: '2701', name: '세종' },
+  { code: '3211', name: '강원(춘천)' },
+  { code: '3214', name: '강릉' },
+  { code: '3311', name: '충북(청주)' },
+  { code: '3411', name: '충남(천안)' },
+  { code: '3511', name: '전북(전주)' },
+  { code: '3613', name: '전남(순천)' },
+  { code: '3711', name: '경북(포항)' },
+  { code: '3714', name: '안동' },
+  { code: '3814', name: '경남(창원)' },
+  { code: '3911', name: '제주' },
 ];
 export const DEFAULT_REGION = REGIONS[0];
 export const REGION_UNLOCK_HOURS = 24;
@@ -152,12 +164,8 @@ export type ClosureRule = { weekday: number; weeks: number[]; note?: string };
 export const MART_CLOSURE: Record<string, ClosureRule> = {
   default: { weekday: 0, weeks: [2, 4] },
   '1101': { weekday: 0, weeks: [2, 4], note: '서초·동대문·중구 등 일부 자치구는 평일 휴무' },
+  '3111': { weekday: 0, weeks: [2, 4], note: '경기 일부 시는 평일 휴무' },
   '2100': { weekday: 1, weeks: [2, 4], note: '2024년부터 둘째·넷째 월요일' },
   '2200': { weekday: 1, weeks: [2, 4], note: '2023년부터 둘째·넷째 월요일' },
-  '2300': { weekday: 0, weeks: [2, 4] },
-  '2401': { weekday: 0, weeks: [2, 4] },
-  '2501': { weekday: 0, weeks: [2, 4] },
-  '2601': { weekday: 0, weeks: [2, 4] },
-  '3111': { weekday: 0, weeks: [2, 4], note: '경기 일부 시는 평일 휴무' },
-  '3112': { weekday: 0, weeks: [2, 4] },
+  '3311': { weekday: 3, weeks: [2, 4], note: '청주는 둘째·넷째 수요일' },
 };
