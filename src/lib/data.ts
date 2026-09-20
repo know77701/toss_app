@@ -64,7 +64,7 @@ async function cachedJson<T>(url: string): Promise<T> {
     /* 캐시 못 읽으면 네트워크 */
   }
   const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`데이터를 불러오지 못했습니다 (${res.status})`);
+  if (!res.ok) throw Object.assign(new Error(`데이터를 불러오지 못했습니다 (${res.status})`), { status: res.status });
   const data = (await res.json()) as T;
   try {
     localStorage.setItem(key, JSON.stringify({ at: Date.now(), data }));
@@ -636,4 +636,10 @@ export function perUnitText(price: number | null | undefined, spec: string | nul
   if (!pu) return null;
   const v = price / pu.factor;
   return `${pu.label} ${v < 100 ? v.toFixed(1) : Math.round(v).toLocaleString('ko-KR')}원`;
+}
+
+/** fetch 에러에서 HTTP 상태 꺼내기 (404 = 해당 지역 파일이 아직 없음) */
+export function errorStatus(e: unknown): number | null {
+  const s = (e as { status?: unknown })?.status;
+  return typeof s === 'number' ? s : null;
 }

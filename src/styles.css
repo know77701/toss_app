@@ -1162,3 +1162,29 @@ body {
   color: var(--text-2);
   padding: 0;
 }
+
+/* 지역 데이터 없음 안내 */
+.nodata {
+  padding-top: 56px;
+}
+.nodata-t {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+}
+.nodata-s {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+.nodata-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 20px;
+}
+.nodata-actions .btn {
+  width: 100%;
+  margin: 0;
+}

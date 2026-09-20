@@ -12,6 +12,7 @@ import { CATEGORY_NAME, DEFAULT_REGION, REGIONS, REGION_UNLOCK_HOURS, REWARD_SLO
 import {
   applyPreset,
   cheapNow,
+  errorStatus,
   fetchGeo,
   fetchHistory,
   fetchMarket,
@@ -85,7 +86,7 @@ export default function App() {
   const [geo, setGeo] = useState<GeoData | null>(null);
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [tab, setTab] = useState<Tab>('fresh');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; status: number | null } | null>(null);
   const [screen, setScreen] = useState<Screen>({ name: 'list' });
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [favorites, setFavs] = useState<string[]>(() => getFavorites());
@@ -95,25 +96,48 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null);
   const [query, setQuery] = useState('');
 
-  // 지역과 무관한 것: 1회 로드
+  // 회수 정보는 작아서 바로. 좌표·전통시장은 마트/장바구니 탭을 열 때 처음 한 번만.
   useEffect(() => {
     fetchRecalls().then(setRecalls);
+  }, []);
+  const [extrasLoaded, setExtrasLoaded] = useState(false);
+  const loadExtras = useCallback(() => {
+    if (extrasLoaded) return;
+    setExtrasLoaded(true);
     fetchGeo().then(setGeo);
     fetchMarket().then(setMarket);
-  }, []);
+  }, [extrasLoaded]);
 
-  // 지역이 바뀔 때마다 데이터 다시 로드
+  // 지역이 바뀔 때: 가격 파일 먼저 받아 첫 화면을 띄우고, 이력은 그 다음에
   useEffect(() => {
     let alive = true;
     setData(null);
     setError(null);
     setExpandedId(null);
-    fetchPriceData(region.code)
-      .then((d) => alive && setData(d))
-      .catch((e: Error) => alive && setError(e.message));
-    fetchHistory(region.code).then((h) => alive && setHistory(h));
+    setHistory(null);
     setMart(null);
+    setMartLoaded(false);
+    fetchPriceData(region.code)
+      .then((d) => {
+        if (!alive) return;
+        setData(d);
+        fetchHistory(region.code).then((h) => alive && setHistory(h));
+      })
+      .catch((e: Error) => alive && setError({ message: e.message, status: errorStatus(e) }));
+    return () => {
+      alive = false;
+    };
+  }, [region.code]);
+
+  // 마트 파일(가장 큼)은 마트·장바구니 탭을 열거나, 장바구니에 마트 상품이 있을 때만
+  const [martLoaded, setMartLoaded] = useState(false);
+  const needMart = tab === 'mart' || tab === 'basket' || basket.some((b) => b.kind === 'mart');
+  useEffect(() => {
+    if (!data || !needMart || martLoaded) return;
+    let alive = true;
+    setMartLoaded(true);
     setMartLoading(true);
+    loadExtras();
     fetchMart(region.code).then((m) => {
       if (!alive) return;
       setMart(m);
@@ -122,7 +146,7 @@ export default function App() {
     return () => {
       alive = false;
     };
-  }, [region.code]);
+  }, [data, needMart, martLoaded, region.code, loadExtras]);
 
   // 안드로이드 뒤로가기: 시트 → 상세/설정 → 펼침 → 종료
   useEffect(() => {
@@ -389,9 +413,28 @@ export default function App() {
             </div>
           </div>
 
-          {error && (
+          {error && error.status === 404 && (
+            <div className="state nodata">
+              <div className="nodata-t">{region.name} 데이터가 아직 없어요</div>
+              <div className="nodata-s">
+                새로 추가된 지역은 반영까지 하루가 걸려요.
+                <br />
+                다른 도시를 보시거나 내일 다시 확인해 주세요.
+              </div>
+              <div className="nodata-actions">
+                <button className="btn" onClick={() => setSheetOpen(true)}>
+                  다른 지역 보기
+                </button>
+                <button className="btn sub" onClick={() => pickRegion(DEFAULT_REGION)}>
+                  서울로 보기
+                </button>
+              </div>
+            </div>
+          )}
+          {error && error.status !== 404 && (
             <div className="state">
               가격 정보를 불러오지 못했습니다.
+              <div className="nodata-s">네트워크를 확인한 뒤 다시 시도해 주세요.</div>
               <div style={{ marginTop: 16 }}>
                 <button className="btn sub" onClick={() => location.reload()}>
                   다시 시도
@@ -521,8 +564,6 @@ export default function App() {
                 </div>
               )}
 
-              <RecallStrip data={recalls} onMore={() => setScreen({ name: 'recalls' })} />
-
               <div className="section">
                 <div className="section-head">즐겨찾기 {favoriteItems.length > 0 && `${favoriteItems.length}/${slots}`}</div>
                 {favoriteItems.length === 0 ? <div className="fav-empty">품목을 누른 뒤 ☆ 즐겨찾기를 누르면 여기에 모입니다.</div> : favoriteItems.map((it) => <PriceRow key={it.id} {...rowProps(it)} />)}
@@ -548,6 +589,8 @@ export default function App() {
                   );
                 })}
               </div>
+
+              <RecallStrip data={recalls} onMore={() => setScreen({ name: 'recalls' })} />
 
               <div className="note">출처 공공데이터포털 한국농수산식품유통공사 농산물유통정보. {region.name} 지역 소매 조사 결과이며 매장에 따라 실제 판매가는 다를 수 있습니다.</div>
             </>
