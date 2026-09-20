@@ -43,12 +43,14 @@ import {
   getRegionCode,
   getSlots,
   getUnlockUntil,
+  hydrateFromNative,
   setBasket as saveBasket,
   setFavorites,
   setRegionCode,
   setUnlockHours,
 } from './lib/favorites';
 import { closeMiniApp, onBack } from './lib/toss';
+import { Accuracy, Device, Storage, getAnonymousKey } from '@apps-in-toss/web-framework';
 
 type Screen = { name: 'list' } | { name: 'detail'; item: DisplayItem } | { name: 'martDetail'; product: MartProduct } | { name: 'settings' } | { name: 'recalls' };
 type Tab = 'fresh' | 'mart' | 'basket';
@@ -156,6 +158,24 @@ export default function App() {
   useEffect(() => {
     fetchRecalls().then(setRecalls);
   }, []);
+
+  // 사용자 데이터 되살리기(웹뷰 저장소가 비었을 때 네이티브 저장소에서) + 익명 사용자 식별키 확인·저장
+  useEffect(() => {
+    hydrateFromNative().then((changed) => {
+      if (!changed) return;
+      setFavs(getFavorites());
+      setSlots(getSlots());
+      setBasketState(getBasket());
+    });
+    (async () => {
+      try {
+        const res = await getAnonymousKey();
+        if (res && res !== 'ERROR') void Storage.setItem('tm:anonKey', JSON.stringify(res)).catch(() => {});
+      } catch {
+        /* 토스 밖 */
+      }
+    })();
+  }, []);
   const [extrasLoaded, setExtrasLoaded] = useState(false);
   const loadExtras = useCallback(() => {
     if (extrasLoaded) return;
@@ -205,17 +225,12 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, needMart, martLoaded, region.code]);
 
-  // 뒤로가기(상단 < 버튼, 안드로이드 뒤로가기): 한 단계씩 되돌리고, 홈에서만 "나가시겠어요?" 확인
-  const [exitAsk, setExitAsk] = useState(false);
-  const navRef = useRef({ sheetOpen: false, exitAsk: false, screen: 'list' as Screen['name'], tab: 'fresh' as Tab, expandedId: null as string | null, query: '' });
-  navRef.current = { sheetOpen, exitAsk, screen: screen.name, tab, expandedId, query };
+  // 뒤로가기(상단 < 버튼, 안드로이드 뒤로가기): 한 단계씩 되돌리고, 최초 화면에서는 검수 기준대로 바로 종료
+  const navRef = useRef({ sheetOpen: false, screen: 'list' as Screen['name'], tab: 'fresh' as Tab, expandedId: null as string | null, query: '' });
+  navRef.current = { sheetOpen, screen: screen.name, tab, expandedId, query };
   useEffect(() => {
     return onBack(() => {
       const n = navRef.current;
-      if (n.exitAsk) {
-        setExitAsk(false);
-        return false;
-      }
       if (n.sheetOpen) {
         setSheetOpen(false);
         return false;
@@ -236,8 +251,7 @@ export default function App() {
         setTab('fresh');
         return false;
       }
-      setExitAsk(true); // 홈: 바로 닫지 않고 확인
-      return false;
+      return true; // 최초 화면: 미니앱 종료
     });
   }, []);
 
@@ -408,9 +422,19 @@ export default function App() {
   const removeEntry = useCallback((entry: BasketEntry) => updateBasket((prev) => prev.filter((b) => !(b.kind === entry.kind && b.id === entry.id))), [updateBasket]);
 
   // ── 내 위치 (버튼을 눌렀을 때만 요청, 저장하지 않음)
-  const locate = useCallback(() => {
+  const locate = useCallback(async () => {
+    try {
+      const loc = await Device.getLocation({ accuracy: Accuracy.Balanced });
+      if (loc?.coords) {
+        setUserPos([loc.coords.latitude, loc.coords.longitude]);
+        setToast('내 위치 기준 거리를 표시합니다');
+        return;
+      }
+    } catch {
+      /* 권한 거부 또는 토스 밖 → 아래 브라우저 API 시도 */
+    }
     if (!('geolocation' in navigator)) {
-      setToast('이 기기에서는 위치를 쓸 수 없습니다');
+      setToast('위치 권한이 없어 거리를 표시할 수 없습니다');
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -724,24 +748,6 @@ export default function App() {
         <button className={`to-top ${tab === 'mart' ? 'lift' : ''}`} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="맨 위로">
           ↑
         </button>
-      )}
-
-      {exitAsk && (
-        <>
-          <div className="sheet-bg" onClick={() => setExitAsk(false)} />
-          <div className="sheet" role="dialog" aria-label="나가기">
-            <div className="sheet-title">장바구니 물가를 나갈까요?</div>
-            <div className="sheet-desc">즐겨찾기와 장바구니는 그대로 남아 있어요.</div>
-            <div style={{ padding: '4px 20px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <button className="btn" style={{ margin: 0, width: '100%' }} onClick={() => void closeMiniApp()}>
-                나가기
-              </button>
-              <button className="btn sub" style={{ margin: 0, width: '100%' }} onClick={() => setExitAsk(false)}>
-                계속 보기
-              </button>
-            </div>
-          </div>
-        </>
       )}
 
       <BannerAd ready={adsReady} />
