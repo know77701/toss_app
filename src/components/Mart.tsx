@@ -54,18 +54,21 @@ export default function MartScreen({ data, loading, regionName, regionCode, mark
   const popular = shown.filter((p) => p.popular);
   const rest = shown.filter((p) => !p.popular);
 
+  const hasMarket = regionName === '서울';
   const subTabs = (
     <div className="subtabs">
       <button className={sub === 'mart' ? 'on' : ''} onClick={() => setSub('mart')}>
         마트·편의점
       </button>
-      <button className={sub === 'market' ? 'on' : ''} onClick={() => setSub('market')}>
-        전통시장{regionName !== '서울' ? ' (서울만)' : ''}
-      </button>
+      {hasMarket && (
+        <button className={sub === 'market' ? 'on' : ''} onClick={() => setSub('market')}>
+          전통시장
+        </button>
+      )}
     </div>
   );
 
-  if (sub === 'market') {
+  if (sub === 'market' && hasMarket) {
     return (
       <div>
         {subTabs}
@@ -326,5 +329,54 @@ function ClosureBar({ regionName, dates, note, open, onOpen, onClose }: { region
         </>
       )}
     </>
+  );
+}
+
+/** 장바구니 등 다른 곳에서 마트 상품 상세를 모달로 열 때 */
+export function MartProductModal({
+  p,
+  data,
+  geo,
+  userPos,
+  inBasket,
+  onAddBasket,
+  onBack,
+  onLocate,
+}: {
+  p: MartProduct;
+  data: MartData;
+  geo: GeoData | null;
+  userPos: [number, number] | null;
+  inBasket: boolean;
+  onAddBasket: (p: MartProduct) => void;
+  onBack: () => void;
+  onLocate: () => void;
+}) {
+  const { title, maker, spec } = splitProductName(p.name);
+  return (
+    <div>
+      <div className="nav">
+        <button className="back" onClick={onBack} aria-label="닫기">
+          ✕
+        </button>
+        <div className="title">{title}</div>
+        <div className="right">
+          {!userPos && (
+            <button className="text-btn" onClick={onLocate}>
+              거리
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="hero">
+        <div className="label">{[maker, spec ?? p.unit, `${p.prices.length}개 매장`].filter(Boolean).join(' · ')}</div>
+        <div className="price">{won(p.min)}~</div>
+        <div className="chg flat">
+          최대 {won(p.max)} · 평균 {won(p.avg)} · {perUnitText(p.min, spec ?? p.unit) ?? ''}
+        </div>
+        <div className="meta">한국소비자원 {data.inspectDay} 조사 · {data.region} 매장 기준</div>
+      </div>
+      <ProductDetail p={p} data={data} geo={geo} userPos={userPos} inBasket={inBasket} onAddBasket={onAddBasket} />
+    </div>
   );
 }

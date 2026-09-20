@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BannerAd from './components/BannerAd';
 import BasketScreen from './components/Basket';
 import Detail from './components/Detail';
-import MartScreen from './components/Mart';
+import MartScreen, { MartProductModal } from './components/Mart';
 import PriceRow from './components/PriceRow';
 import RecallsScreen, { RecallStrip } from './components/Recalls';
 import RegionSheet from './components/RegionSheet';
@@ -50,7 +50,7 @@ import {
 } from './lib/favorites';
 import { closeMiniApp, onBack } from './lib/toss';
 
-type Screen = { name: 'list' } | { name: 'detail'; item: DisplayItem } | { name: 'settings' } | { name: 'recalls' };
+type Screen = { name: 'list' } | { name: 'detail'; item: DisplayItem } | { name: 'martDetail'; product: MartProduct } | { name: 'settings' } | { name: 'recalls' };
 type Tab = 'fresh' | 'mart' | 'basket';
 
 function formatDate(regday: string): string {
@@ -152,21 +152,22 @@ export default function App() {
   // 마트 파일(가장 큼)은 마트·장바구니 탭을 열거나, 장바구니에 마트 상품이 있을 때만
   const [martLoaded, setMartLoaded] = useState(false);
   const needMart = tab === 'mart' || tab === 'basket' || basket.some((b) => b.kind === 'mart');
+  const regionRef = useRef(region.code);
+  regionRef.current = region.code;
   useEffect(() => {
     if (!data || !needMart || martLoaded) return;
-    let alive = true;
+    const code = region.code;
     setMartLoaded(true);
     setMartLoading(true);
     loadExtras();
-    fetchMart(region.code).then((m) => {
-      if (!alive) return;
+    fetchMart(code).then((m) => {
+      if (regionRef.current !== code) return; // 그 사이 지역이 바뀌었으면 버림
       setMart(m);
       setMartLoading(false);
     });
-    return () => {
-      alive = false;
-    };
-  }, [data, needMart, martLoaded, region.code, loadExtras]);
+    // loadExtras 는 첫 호출 뒤 identity 가 바뀌지만 다시 실행할 필요가 없어 의존성에서 뺍니다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, needMart, martLoaded, region.code]);
 
   // 뒤로가기(상단 < 버튼, 안드로이드 뒤로가기): 한 단계씩 되돌리고, 홈에서만 "나가시겠어요?" 확인
   const [exitAsk, setExitAsk] = useState(false);
@@ -484,15 +485,17 @@ export default function App() {
 
           {data && (
             <div className="tabs" role="tablist">
-              <button role="tab" className={tab === 'fresh' ? 'on' : ''} onClick={() => setTab('fresh')}>
-                농축수산물
-              </button>
-              <button role="tab" className={tab === 'mart' ? 'on' : ''} onClick={() => setTab('mart')}>
-                마트·시장
-              </button>
-              <button role="tab" className={tab === 'basket' ? 'on' : ''} onClick={() => setTab('basket')}>
-                장바구니{basket.length > 0 ? ` ${basket.length}` : ''}
-              </button>
+              <div className="tabs-inner">
+                <button role="tab" className={tab === 'fresh' ? 'on' : ''} onClick={() => setTab('fresh')}>
+                  농축수산물
+                </button>
+                <button role="tab" className={tab === 'mart' ? 'on' : ''} onClick={() => setTab('mart')}>
+                  마트·시장
+                </button>
+                <button role="tab" className={tab === 'basket' ? 'on' : ''} onClick={() => setTab('basket')}>
+                  장바구니{basket.length > 0 ? ` ${basket.length}` : ''}
+                </button>
+              </div>
             </div>
           )}
 
@@ -513,6 +516,8 @@ export default function App() {
               onClear={clearBasket}
               activePreset={activePreset}
               previewPreset={previewPreset}
+              onOpenFresh={openDetail}
+              onOpenMart={(p) => setScreen({ name: 'martDetail', product: p })}
             />
           )}
 
@@ -647,6 +652,18 @@ export default function App() {
             <Detail item={screen.item} isFavorite={favSet.has(screen.item.id)} history={history} regday={regday} regionName={region.name} onBack={() => setScreen({ name: 'list' })} onToggleFavorite={toggleFavorite} />
           )}
           {screen.name === 'recalls' && <RecallsScreen data={recalls} onBack={() => setScreen({ name: 'list' })} />}
+          {screen.name === 'martDetail' && mart && (
+            <MartProductModal
+              p={screen.product}
+              data={mart}
+              geo={geo}
+              userPos={userPos}
+              inBasket={basketMartIds.has(screen.product.id)}
+              onAddBasket={addMart}
+              onBack={() => setScreen({ name: 'list' })}
+              onLocate={locate}
+            />
+          )}
           {screen.name === 'settings' && (
             <Settings favoritesCount={favorites.length} slots={slots} onBack={() => setScreen({ name: 'list' })} onWatchRewarded={watchRewarded} updatedAt={data?.updatedAt ?? ''} regday={regday} regionName={region.name} unlockedUntil={unlockedUntil} />
           )}

@@ -26,13 +26,15 @@ type Props = {
   onGoMart: () => void;
   onLocate: () => void;
   onPreset: (preset: BasketPreset, mode: 'add' | 'replace') => void;
+  onOpenFresh: (item: DisplayItem) => void;
+  onOpenMart: (p: MartData['products'][number]) => void;
   onClear: () => void;
   activePreset: string | null;
   previewPreset: (preset: BasketPreset) => { count: number; missing: string[] };
 };
 
 /** 장바구니: 농산물은 오늘 vs 1개월 전, 마트 상품은 매장별 합계로 "어디가 싼가" */
-export default function BasketScreen({ entries, freshItems, mart, geo, userPos, regionName, onQty, onRemove, onGoFresh, onGoMart, onLocate, onPreset, onClear, activePreset, previewPreset }: Props) {
+export default function BasketScreen({ entries, freshItems, mart, geo, userPos, regionName, onQty, onRemove, onGoFresh, onGoMart, onLocate, onPreset, onClear, activePreset, previewPreset, onOpenFresh, onOpenMart }: Props) {
   const [pending, setPending] = useState<BasketPreset | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const fresh = useMemo(
@@ -232,6 +234,7 @@ export default function BasketScreen({ entries, freshItems, mart, geo, userPos, 
         {fresh.map(({ e, it }) => (
           <BasketLine
             key={`f-${e.id}`}
+            onOpen={() => onOpenFresh(it)}
             name={it.label}
             sub={[it.unit, `오늘 ${won(it.prices.d1)}`, perUnitText(it.prices.d1, it.unit)].filter(Boolean).join(' · ')}
             qty={e.qty}
@@ -245,6 +248,7 @@ export default function BasketScreen({ entries, freshItems, mart, geo, userPos, 
           return (
             <BasketLine
               key={`m-${e.id}`}
+              onOpen={() => onOpenMart(p)}
               name={title}
               sub={[spec ?? p.unit, maker, `평균 ${won(p.avg)}`, perUnitText(p.min, spec ?? p.unit)?.replace('당', '당 최저')].filter(Boolean).join(' · ')}
               qty={e.qty}
@@ -272,11 +276,11 @@ function distance(a: [number, number], b: [number, number]): number {
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
-function BasketLine({ name, sub, qty, total, onQty, onRemove }: { name: string; sub: string; qty: number; total: number; onQty: (d: number) => void; onRemove: () => void }) {
+function BasketLine({ name, sub, qty, total, onQty, onRemove, onOpen }: { name: string; sub: string; qty: number; total: number; onQty: (d: number) => void; onRemove: () => void; onOpen: () => void }) {
   return (
     <div className="row basket-line">
-      <div className="name">
-        <div className="t">{name}</div>
+      <div className="name" role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => e.key === 'Enter' && onOpen()}>
+        <div className="t">{name} <span className="chev">›</span></div>
         <div className="s">{sub}</div>
       </div>
       <div className="qty">

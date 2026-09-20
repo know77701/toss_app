@@ -1272,3 +1272,47 @@ body {
     right: calc(50% - 320px);
   }
 }
+
+/* sticky tabs */
+.tabs {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  margin-top: 0;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  background: var(--bg);
+  box-shadow: 0 1px 0 var(--line);
+  border-radius: 0;
+}
+.tabs button {
+  border-radius: 8px;
+}
+.tabs-inner {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--bg-sub);
+  border-radius: 10px;
+}
+.subtabs {
+  position: sticky;
+  top: 56px;
+  z-index: 5;
+  background: var(--bg);
+  padding-top: 6px;
+  margin: 0;
+}
+.modal-open .tabs,
+.modal-open .subtabs {
+  position: static;
+}
+
+.basket-line .name {
+  cursor: pointer;
+}
+.basket-line .chev {
+  color: var(--text-3);
+  font-size: 13px;
+  margin-left: 2px;
+}
