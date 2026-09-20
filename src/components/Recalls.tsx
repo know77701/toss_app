@@ -48,8 +48,8 @@ export default function RecallsScreen({ data, onBack }: { data: RecallData | nul
   return (
     <div>
       <div className="nav">
-        <button className="back" onClick={onBack} aria-label="뒤로">
-          ‹
+        <button className="back" onClick={onBack} aria-label="닫기">
+          ✕
         </button>
         <div className="title">회수·판매중지 식품</div>
         <div className="right" />

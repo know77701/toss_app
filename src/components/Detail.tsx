@@ -29,8 +29,8 @@ export default function Detail({ item, isFavorite, history, regday, regionName =
   return (
     <div>
       <div className="nav">
-        <button className="back" onClick={onBack} aria-label="뒤로">
-          ‹
+        <button className="back" onClick={onBack} aria-label="닫기">
+          ✕
         </button>
         <div className="title">{item.label}</div>
         <div className="right">

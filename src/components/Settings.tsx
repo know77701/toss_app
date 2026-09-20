@@ -15,8 +15,8 @@ export default function Settings({ favoritesCount, slots, onBack, onWatchRewarde
   return (
     <div>
       <div className="nav">
-        <button className="back" onClick={onBack} aria-label="뒤로">
-          ‹
+        <button className="back" onClick={onBack} aria-label="닫기">
+          ✕
         </button>
         <div className="title">설정</div>
         <div className="right" />

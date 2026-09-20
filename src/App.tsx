@@ -97,6 +97,12 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [showTop, setShowTop] = useState(false);
   useEffect(() => {
+    document.body.style.overflow = screen.name !== 'list' ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [screen.name]);
+  useEffect(() => {
     let ticking = false;
     const onScroll = () => {
       if (ticking) return;
@@ -426,8 +432,8 @@ export default function App() {
   });
 
   return (
-    <div className={`app ${screen.name === 'list' && tab === 'mart' ? 'has-closure' : ''}`}>
-      {screen.name === 'list' && (
+    <div className={`app ${tab === 'mart' ? 'has-closure' : ''} ${screen.name !== 'list' ? 'modal-open' : ''}`}>
+      {(
         <>
           <div className="top">
             <div>
@@ -631,14 +637,17 @@ export default function App() {
         </>
       )}
 
-      {screen.name === 'detail' && (
-        <Detail item={screen.item} isFavorite={favSet.has(screen.item.id)} history={history} regday={regday} regionName={region.name} onBack={() => setScreen({ name: 'list' })} onToggleFavorite={toggleFavorite} />
-      )}
-
-      {screen.name === 'recalls' && <RecallsScreen data={recalls} onBack={() => setScreen({ name: 'list' })} />}
-
-      {screen.name === 'settings' && (
-        <Settings favoritesCount={favorites.length} slots={slots} onBack={() => setScreen({ name: 'list' })} onWatchRewarded={watchRewarded} updatedAt={data?.updatedAt ?? ''} regday={regday} regionName={region.name} unlockedUntil={unlockedUntil} />
+      {/* 상세·설정·회수: 홈 위에 덮는 모달. 상단 X 또는 뒤로가기로 닫히고 홈 스크롤 위치는 그대로 */}
+      {screen.name !== 'list' && (
+        <div className="modal" role="dialog">
+          {screen.name === 'detail' && (
+            <Detail item={screen.item} isFavorite={favSet.has(screen.item.id)} history={history} regday={regday} regionName={region.name} onBack={() => setScreen({ name: 'list' })} onToggleFavorite={toggleFavorite} />
+          )}
+          {screen.name === 'recalls' && <RecallsScreen data={recalls} onBack={() => setScreen({ name: 'list' })} />}
+          {screen.name === 'settings' && (
+            <Settings favoritesCount={favorites.length} slots={slots} onBack={() => setScreen({ name: 'list' })} onWatchRewarded={watchRewarded} updatedAt={data?.updatedAt ?? ''} regday={regday} regionName={region.name} unlockedUntil={unlockedUntil} />
+          )}
+        </div>
       )}
 
       {toast && (
@@ -647,8 +656,8 @@ export default function App() {
         </div>
       )}
 
-      {showTop && (
-        <button className={`to-top ${screen.name === 'list' && tab === 'mart' ? 'lift' : ''}`} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="맨 위로">
+      {showTop && screen.name === 'list' && (
+        <button className={`to-top ${tab === 'mart' ? 'lift' : ''}`} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="맨 위로">
           ↑
         </button>
       )}

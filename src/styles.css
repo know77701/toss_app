@@ -1213,3 +1213,34 @@ body {
     right: calc(50% - 320px + 16px);
   }
 }
+
+/* 홈 위에 덮는 모달 화면 (상세·설정·회수). 광고 배너(z 10)보다 아래에 두어 배너는 계속 보임 */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  background: var(--bg);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(var(--banner-h) + env(safe-area-inset-bottom) + 12px);
+  animation: modal-in 160ms ease-out;
+}
+@keyframes modal-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@media (min-width: 600px) {
+  .modal {
+    left: calc(50% - 320px);
+    right: calc(50% - 320px);
+  }
+}
+.nav .back {
+  font-size: 18px;
+}
