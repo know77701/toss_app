@@ -639,7 +639,10 @@ export default function App() {
 
       {/* 상세·설정·회수: 홈 위에 덮는 모달. 상단 X 또는 뒤로가기로 닫히고 홈 스크롤 위치는 그대로 */}
       {screen.name !== 'list' && (
-        <div className="modal" role="dialog">
+        <>
+          <div className="modal-bg" onClick={() => setScreen({ name: 'list' })} />
+          <div className="modal" role="dialog">
+            <div className="modal-handle" />
           {screen.name === 'detail' && (
             <Detail item={screen.item} isFavorite={favSet.has(screen.item.id)} history={history} regday={regday} regionName={region.name} onBack={() => setScreen({ name: 'list' })} onToggleFavorite={toggleFavorite} />
           )}
@@ -647,7 +650,8 @@ export default function App() {
           {screen.name === 'settings' && (
             <Settings favoritesCount={favorites.length} slots={slots} onBack={() => setScreen({ name: 'list' })} onWatchRewarded={watchRewarded} updatedAt={data?.updatedAt ?? ''} regday={regday} regionName={region.name} unlockedUntil={unlockedUntil} />
           )}
-        </div>
+          </div>
+        </>
       )}
 
       {toast && (
