@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BannerAd from './components/BannerAd';
 import BasketScreen from './components/Basket';
 import Detail from './components/Detail';
@@ -95,6 +95,20 @@ export default function App() {
   const [slots, setSlots] = useState<number>(() => getSlots());
   const [toast, setToast] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [showTop, setShowTop] = useState(false);
+  useEffect(() => {
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        setShowTop(window.scrollY > 320);
+        ticking = false;
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // 회수 정보는 작아서 바로. 좌표·전통시장은 마트/장바구니 탭을 열 때 처음 한 번만.
   useEffect(() => {
@@ -148,22 +162,39 @@ export default function App() {
     };
   }, [data, needMart, martLoaded, region.code, loadExtras]);
 
-  // 안드로이드 뒤로가기: 시트 → 상세/설정 → 펼침 → 종료
+  // 뒤로가기(상단 < 버튼, 안드로이드 뒤로가기): 한 단계씩 되돌리고, 홈에서만 "나가시겠어요?" 확인
+  const [exitAsk, setExitAsk] = useState(false);
+  const navRef = useRef({ sheetOpen: false, exitAsk: false, screen: 'list' as Screen['name'], tab: 'fresh' as Tab, expandedId: null as string | null, query: '' });
+  navRef.current = { sheetOpen, exitAsk, screen: screen.name, tab, expandedId, query };
   useEffect(() => {
     return onBack(() => {
-      setSheetOpen((open) => {
-        if (open) return false;
-        setScreen((s) => {
-          if (s.name !== 'list') return { name: 'list' };
-          setExpandedId((id) => {
-            if (id) return null;
-            void closeMiniApp();
-            return id;
-          });
-          return s;
-        });
-        return open;
-      });
+      const n = navRef.current;
+      if (n.exitAsk) {
+        setExitAsk(false);
+        return false;
+      }
+      if (n.sheetOpen) {
+        setSheetOpen(false);
+        return false;
+      }
+      if (n.screen !== 'list') {
+        setScreen({ name: 'list' });
+        return false;
+      }
+      if (n.query) {
+        setQuery('');
+        return false;
+      }
+      if (n.expandedId) {
+        setExpandedId(null);
+        return false;
+      }
+      if (n.tab !== 'fresh') {
+        setTab('fresh');
+        return false;
+      }
+      setExitAsk(true); // 홈: 바로 닫지 않고 확인
+      return false;
     });
   }, []);
 
@@ -614,6 +645,30 @@ export default function App() {
         <div className="toast" role="status">
           {toast}
         </div>
+      )}
+
+      {showTop && (
+        <button className={`to-top ${screen.name === 'list' && tab === 'mart' ? 'lift' : ''}`} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="맨 위로">
+          ↑
+        </button>
+      )}
+
+      {exitAsk && (
+        <>
+          <div className="sheet-bg" onClick={() => setExitAsk(false)} />
+          <div className="sheet" role="dialog" aria-label="나가기">
+            <div className="sheet-title">장바구니 물가를 나갈까요?</div>
+            <div className="sheet-desc">즐겨찾기와 장바구니는 그대로 남아 있어요.</div>
+            <div style={{ padding: '4px 20px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button className="btn" style={{ margin: 0, width: '100%' }} onClick={() => void closeMiniApp()}>
+                나가기
+              </button>
+              <button className="btn sub" style={{ margin: 0, width: '100%' }} onClick={() => setExitAsk(false)}>
+                계속 보기
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
       <BannerAd ready={adsReady} />

@@ -4,26 +4,55 @@
  */
 import { graniteEvent, Screen } from '@apps-in-toss/web-framework';
 
-/** 안드로이드 뒤로가기 구독. 반환된 함수를 호출하면 구독 해제. */
-export function onBack(handler: () => void): () => void {
+/**
+ * 뒤로가기 구독. 두 경로를 모두 잡습니다.
+ *  1) graniteEvent 'backEvent' — 안드로이드 하드웨어 뒤로가기 (리스너를 달면 기본 종료가 막힘)
+ *  2) 웹 history 'popstate' — 상단 네비게이션 바의 < 버튼은 웹뷰의 history.back() 으로 동작하므로,
+ *     더미 히스토리를 하나 깔아 두고 popstate 가 오면 handler 를 부른 뒤 다시 깔아 둡니다.
+ * handler 가 true 를 돌려주면 "앱을 닫아도 됨" 이라는 뜻이라 더미를 다시 깔지 않고 종료합니다.
+ */
+export function onBack(handler: () => boolean | void): () => void {
+  const GUARD = { tm: 'guard' };
+  const arm = () => {
+    try {
+      if (!(window.history.state && (window.history.state as { tm?: string }).tm === 'guard')) window.history.pushState(GUARD, '');
+    } catch {
+      /* noop */
+    }
+  };
+  arm();
+
+  const onPop = () => {
+    const exit = handler() === true;
+    if (exit) {
+      void closeMiniApp();
+      return;
+    }
+    arm();
+  };
+  window.addEventListener('popstate', onPop);
+
+  let unsubscribe: (() => void) | null = null;
   try {
-    const unsubscribe = graniteEvent.addEventListener('backEvent', {
-      onEvent: () => handler(),
+    unsubscribe = graniteEvent.addEventListener('backEvent', {
+      onEvent: () => {
+        const exit = handler() === true;
+        if (exit) void closeMiniApp();
+      },
       onError: (error: unknown) => console.error('backEvent error', error),
     });
-    return () => {
-      try {
-        unsubscribe();
-      } catch {
-        /* noop */
-      }
-    };
   } catch {
-    // 토스 밖: 브라우저 popstate로 대체
-    const fn = () => handler();
-    window.addEventListener('popstate', fn);
-    return () => window.removeEventListener('popstate', fn);
+    /* 토스 밖: popstate 만으로 동작 */
   }
+
+  return () => {
+    window.removeEventListener('popstate', onPop);
+    try {
+      unsubscribe?.();
+    } catch {
+      /* noop */
+    }
+  };
 }
 
 /** 미니앱 닫기 */

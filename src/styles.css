@@ -1188,3 +1188,28 @@ body {
   width: 100%;
   margin: 0;
 }
+
+/* 맨 위로 (광고 배너 위, 오른쪽 아래) */
+.to-top {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--banner-h) + env(safe-area-inset-bottom) + 16px);
+  z-index: 12;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line-2);
+  border-radius: 20px;
+  background: var(--bg);
+  color: var(--text-2);
+  font-size: 18px;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+.to-top.lift {
+  bottom: calc(var(--banner-h) + env(safe-area-inset-bottom) + 16px + 44px); /* 마트 탭 휴무 바 위 */
+}
+@media (min-width: 600px) {
+  .to-top {
+    right: calc(50% - 320px + 16px);
+  }
+}
