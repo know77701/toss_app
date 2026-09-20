@@ -96,12 +96,48 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [showTop, setShowTop] = useState(false);
+  const lockedScrollY = useRef(0);
   useEffect(() => {
-    document.body.style.overflow = screen.name !== 'list' ? 'hidden' : '';
-    return () => {
-      document.body.style.overflow = '';
-    };
+    const open = screen.name !== 'list';
+    const b = document.body.style;
+    if (open) {
+      lockedScrollY.current = window.scrollY;
+      b.position = 'fixed';
+      b.top = `-${lockedScrollY.current}px`;
+      b.left = '0';
+      b.right = '0';
+      b.width = '100%';
+      b.overflow = 'hidden';
+    } else {
+      const y = lockedScrollY.current;
+      b.position = '';
+      b.top = '';
+      b.left = '';
+      b.right = '';
+      b.width = '';
+      b.overflow = '';
+      window.scrollTo(0, y);
+    }
   }, [screen.name]);
+
+  // 시트 위쪽(손잡이·제목 영역)을 아래로 80px 이상 끌면 닫힘
+  const dragY = useRef<number | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const onDragStart = (e: React.TouchEvent) => {
+    dragY.current = e.touches[0].clientY;
+  };
+  const onDragMove = (e: React.TouchEvent) => {
+    if (dragY.current == null || !modalRef.current) return;
+    const dy = e.touches[0].clientY - dragY.current;
+    modalRef.current.style.transform = dy > 0 ? `translateY(${dy}px)` : '';
+  };
+  const onDragEnd = (e: React.TouchEvent) => {
+    if (dragY.current == null) return;
+    const dy = e.changedTouches[0].clientY - dragY.current;
+    dragY.current = null;
+    if (modalRef.current) modalRef.current.style.transform = '';
+    if (dy > 80) setScreen({ name: 'list' });
+  };
   useEffect(() => {
     let ticking = false;
     const onScroll = () => {
@@ -645,9 +681,11 @@ export default function App() {
       {/* 상세·설정·회수: 홈 위에 덮는 모달. 상단 X 또는 뒤로가기로 닫히고 홈 스크롤 위치는 그대로 */}
       {screen.name !== 'list' && (
         <>
-          <div className="modal-bg" onClick={() => setScreen({ name: 'list' })} />
-          <div className="modal" role="dialog">
-            <div className="modal-handle" />
+          <div className="modal-bg" onClick={() => setScreen({ name: 'list' })} onTouchEnd={() => setScreen({ name: 'list' })} />
+          <div className="modal" role="dialog" ref={modalRef}>
+            <div className="modal-grip" onTouchStart={onDragStart} onTouchMove={onDragMove} onTouchEnd={onDragEnd}>
+              <div className="modal-handle" />
+            </div>
           {screen.name === 'detail' && (
             <Detail item={screen.item} isFavorite={favSet.has(screen.item.id)} history={history} regday={regday} regionName={region.name} onBack={() => setScreen({ name: 'list' })} onToggleFavorite={toggleFavorite} />
           )}
@@ -667,6 +705,11 @@ export default function App() {
           {screen.name === 'settings' && (
             <Settings favoritesCount={favorites.length} slots={slots} onBack={() => setScreen({ name: 'list' })} onWatchRewarded={watchRewarded} updatedAt={data?.updatedAt ?? ''} regday={regday} regionName={region.name} unlockedUntil={unlockedUntil} />
           )}
+            <div className="modal-footer">
+              <button className="btn sub" onClick={() => setScreen({ name: 'list' })}>
+                닫기
+              </button>
+            </div>
           </div>
         </>
       )}
