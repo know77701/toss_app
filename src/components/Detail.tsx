@@ -71,7 +71,7 @@ export default function Detail({ item, isFavorite, history, regday, regionName =
       <div className="section">
         <div className="section-head">시점별 비교</div>
         <div className="table">
-          {ROWS.map((r) => {
+          {ROWS.filter((r) => item.prices[r.key] != null).map((r) => {
             const v = item.prices[r.key];
             const d = today != null && v != null && v > 0 ? ((today - v) / v) * 100 : null;
             const dcls = d == null || Math.abs(d) < 0.05 ? 'flat' : d > 0 ? 'up' : 'down';
