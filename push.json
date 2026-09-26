@@ -1,0 +1,19 @@
+{
+  "date": "2026-09-25",
+  "title": "오늘 물가",
+  "body": "배추가 어제보다 16% 내렸어요.",
+  "deeplink": "intoss://todaymarketprice?item=200-215-00-04",
+  "item": {
+    "id": "200-215-00-04",
+    "name": "배추",
+    "pct": -16.3,
+    "price": 3056,
+    "unit": "1kg"
+  },
+  "context": {
+    "name": "배추",
+    "josa": "가",
+    "pct": "16",
+    "dir": "내렸어요"
+  }
+}
